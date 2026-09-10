@@ -13,6 +13,10 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="manifest" href="manifest.json">
+<script>
+  /* 中身が一瞬でも見えないよう、描き始める前に印をつける */
+  try{ if(localStorage.getItem("nippon-seiha.lock")) document.documentElement.setAttribute("data-locked","1"); }catch(e){}
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
@@ -78,6 +82,28 @@
     display:flex;flex-direction:column;gap:11px;
     overflow-y:auto;   /* 万一入りきらないときだけ動く */
   }
+
+  /* ── 鍵の画面 ── */
+  :root[data-locked] .app{visibility:hidden}
+  .lockscreen{
+    position:fixed;inset:0;z-index:100;
+    background:var(--sky-low);
+    background-image:linear-gradient(180deg,var(--sky-top) 0%,var(--sky-mid) 46%,var(--sky-low) 100%);
+    display:flex;align-items:center;justify-content:center;
+    padding:24px calc(24px + env(safe-area-inset-left)) calc(24px + env(safe-area-inset-bottom));
+  }
+  .lockbox{
+    width:100%;max-width:330px;display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;
+  }
+  .lockbox img{width:88px;height:88px;border-radius:20px;box-shadow:var(--shadow-m)}
+  .lockbox h2{
+    font-family:"Shippori Mincho","Yu Mincho",serif;font-weight:800;font-size:25px;
+    margin:4px 0 0;letter-spacing:.16em;
+  }
+  .lockbox p{margin:0;font-size:13px;line-height:1.8;color:var(--ink-2)}
+  .lockbox .done{width:100%;padding:14px 0}
+  .lockword{display:flex;flex-direction:column;gap:9px;width:100%}
+  .lockerr{color:var(--red) !important;font-size:12.5px}
 
   /* ── 更新のお知らせ ── */
   .newsbar{
@@ -358,6 +384,21 @@
 </head>
 <body>
 
+<div class="lockscreen" id="lockScreen" hidden>
+  <div class="lockbox">
+    <img src="icon-192.png" alt="">
+    <h2>日本制覇</h2>
+    <p id="lockLead">この端末では、開くときに確認しています。</p>
+    <button class="done" id="lockFace" type="button">Face ID で開く</button>
+    <button class="clear" id="lockToWord" type="button">合言葉で開く</button>
+    <div class="lockword" id="lockWordArea" hidden>
+      <input class="pass-input" id="lockInput" type="password" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="解除の合言葉">
+      <button class="done" id="lockOk" type="button">開く</button>
+    </div>
+    <p class="lockerr" id="lockErr" hidden></p>
+  </div>
+</div>
+
 <div class="app">
   <div class="newsbar" id="newsBar" hidden>
     <span id="newsText">新しくなりました</span>
@@ -624,6 +665,12 @@
     <button class="slink" id="syncBtn" type="button">共有をはじめる</button>
   </div>
 
+  <div class="sync" id="lockRow" data-state="off">
+    <span class="sdot"></span>
+    <span id="lockText">Face IDで開く：オフ</span>
+    <button class="slink" id="lockBtn" type="button">オンにする</button>
+  </div>
+
   <p class="credit">地図データ：Geolonia「SVG Map of Japan」（Wikipedia「日本地図.svg」に基づく／GFDL）</p>
 </div>
 
@@ -666,6 +713,24 @@
     </div>
     <p class="tcount" id="tcount"></p>
     <div class="trail" id="trail"></div>
+  </div>
+</div>
+
+<div class="veil" id="lockVeil"></div>
+<div class="sheet" id="lockSheet" role="dialog" aria-modal="true" aria-labelledby="lockTitle" hidden>
+  <div class="sheet-inner">
+    <div class="grip"></div>
+    <h2 class="pass-title" id="lockTitle">Face IDで開く</h2>
+    <p class="pass-note">
+      次に開くときから、Face ID（または端末のパスコード）で確認します。<br>
+      <b>解除の合言葉も決めてください。</b>機種変更などでFace IDが使えなくなったとき、この言葉だけが頼りになります。
+    </p>
+    <input class="pass-input" id="lockNew" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="解除の合言葉">
+    <p class="pass-err" id="lockNewErr" hidden></p>
+    <div class="sheet-foot">
+      <button class="clear" id="lockCancel" type="button">やめる</button>
+      <button class="done" id="lockSave" type="button">設定する</button>
+    </div>
   </div>
 </div>
 
@@ -728,8 +793,13 @@
     return PREFS.filter(function(p){ return p[2] === area; }).map(function(p){ return p[0]; });
   }
 
-  var APP_VERSION = "2.0";
+  var APP_VERSION = "2.1";
   var CHANGELOG = [
+    ["2.1", "2026-09-10", [
+      "Face IDで開くようにできます（画面の下から設定）",
+      "Face IDが使えないときのために、解除の合言葉も決めてもらいます",
+      "鍵をかけているあいだは、開く前に中身が見えません"
+    ]],
     ["2.0", "2026-09-10", [
       "更新があったときに、開いたらお知らせが出るようにしました",
       "この「更新履歴」を追加しました",
@@ -1274,14 +1344,17 @@
     syncText.textContent = note;
     syncBtn.textContent = (state === "on") ? "共有をやめる" : "共有をはじめる";
   }
-  function roomFrom(pass){
-    var norm = String(pass||"").normalize("NFKC").replace(/\s+/g,"").toLowerCase();
-    var enc = new TextEncoder().encode("nippon-seiha:" + norm);
+  function sha256hex(prefix, word){
+    var norm = String(word||"").normalize("NFKC").replace(/\s+/g,"").toLowerCase();
+    var enc = new TextEncoder().encode(prefix + norm);
     return crypto.subtle.digest("SHA-256", enc).then(function(buf){
       return Array.prototype.map.call(new Uint8Array(buf), function(b){
         return ("0" + b.toString(16)).slice(-2);
-      }).join("").slice(0, 32);
+      }).join("");
     });
+  }
+  function roomFrom(pass){
+    return sha256hex("nippon-seiha:", pass).then(function(h){ return h.slice(0, 32); });
   }
   function refreshAll(){
     paint(); renderChips(); renderTrail();
@@ -1376,6 +1449,157 @@
   }
   if(window.__cloud) bootSync();
   else window.addEventListener("cloud-ready", bootSync);
+
+  /* ── Face IDで開く ──────────────────────────────
+     WebAuthn（パスキー）で確認する。合言葉は必ず控えとして持たせる。
+     記録そのものは端末内に普通の形で入っているので、これは
+     「他人にひょいと開かれない」ための蓋であって、暗号の錠ではない。 */
+  var LOCKKEY = "nippon-seiha.lock";   // 合言葉の指紋
+  var CREDKEY = "nippon-seiha.cred";   // Face IDの鍵の名前
+  var lockScreen = document.getElementById("lockScreen");
+  var lockRow = document.getElementById("lockRow");
+  var lockText = document.getElementById("lockText");
+  var lockBtn = document.getElementById("lockBtn");
+  var lockErr = document.getElementById("lockErr");
+
+  function lockHash(){ try{ return localStorage.getItem(LOCKKEY); }catch(e){ return null; } }
+  function credId(){ try{ return localStorage.getItem(CREDKEY); }catch(e){ return null; } }
+  function hasWebAuthn(){
+    return !!(window.PublicKeyCredential && navigator.credentials && navigator.credentials.create);
+  }
+  function b64(buf){
+    var b = new Uint8Array(buf), s2 = "";
+    for(var i=0;i<b.length;i++) s2 += String.fromCharCode(b[i]);
+    return btoa(s2);
+  }
+  function unb64(str){
+    var bin = atob(str), a = new Uint8Array(bin.length);
+    for(var i=0;i<bin.length;i++) a[i] = bin.charCodeAt(i);
+    return a;
+  }
+  function rnd(n){ var a = new Uint8Array(n); crypto.getRandomValues(a); return a; }
+
+  function setLockUI(){
+    var on = !!lockHash();
+    lockRow.setAttribute("data-state", on ? "on" : "off");
+    lockText.textContent = on
+      ? (credId() ? "Face IDで開く：オン" : "合言葉で開く：オン")
+      : "Face IDで開く：オフ";
+    lockBtn.textContent = on ? "オフにする" : "オンにする";
+  }
+
+  /* 登録 */
+  function registerFace(){
+    if(!hasWebAuthn()) return Promise.resolve(false);
+    return navigator.credentials.create({ publicKey: {
+      challenge: rnd(32),
+      rp: { name: "日本制覇" },
+      user: { id: rnd(16), name: "nippon-seiha", displayName: "日本制覇" },
+      pubKeyCredParams: [{ type:"public-key", alg:-7 }, { type:"public-key", alg:-257 }],
+      authenticatorSelection: { authenticatorAttachment: "platform", userVerification: "required", residentKey: "preferred" },
+      timeout: 60000, attestation: "none"
+    }}).then(function(cred){
+      if(!cred) return false;
+      try{ localStorage.setItem(CREDKEY, b64(cred.rawId)); }catch(e){}
+      return true;
+    }).catch(function(){ return false; });
+  }
+  /* 確認 */
+  function verifyFace(){
+    var id = credId();
+    if(!id || !hasWebAuthn()) return Promise.resolve(false);
+    return navigator.credentials.get({ publicKey: {
+      challenge: rnd(32),
+      allowCredentials: [{ type:"public-key", id: unb64(id) }],
+      userVerification: "required",
+      timeout: 60000
+    }}).then(function(a){ return !!a; }).catch(function(){ return false; });
+  }
+
+  function unlock(){
+    document.documentElement.removeAttribute("data-locked");
+    lockScreen.hidden = true;
+    /* 隠れているあいだは大きさが測れないので、開いてから合わせ直す */
+    setTimeout(function(){ relayout(); }, 30);
+  }
+  function showLock(){
+    document.documentElement.setAttribute("data-locked","1");
+    lockScreen.hidden = false;
+    document.getElementById("lockFace").hidden = !credId();
+    document.getElementById("lockToWord").hidden = !credId();
+    document.getElementById("lockWordArea").hidden = !!credId();
+  }
+
+  document.getElementById("lockFace").addEventListener("click", function(){
+    lockErr.hidden = true;
+    verifyFace().then(function(ok){
+      if(ok) unlock();
+      else { lockErr.textContent = "確認できませんでした。合言葉でも開けます。"; lockErr.hidden = false; }
+    });
+  });
+  document.getElementById("lockToWord").addEventListener("click", function(){
+    document.getElementById("lockWordArea").hidden = false;
+    document.getElementById("lockInput").focus();
+  });
+  document.getElementById("lockOk").addEventListener("click", function(){
+    var v = document.getElementById("lockInput").value;
+    sha256hex("nippon-seiha-lock:", v).then(function(h){
+      if(h === lockHash()){ unlock(); }
+      else { lockErr.textContent = "合言葉が違います。"; lockErr.hidden = false; }
+    });
+  });
+  document.getElementById("lockInput").addEventListener("keydown", function(ev){
+    if(ev.key === "Enter") document.getElementById("lockOk").click();
+  });
+
+  /* 設定のシート */
+  var lockSheet = document.getElementById("lockSheet");
+  var lockVeil = document.getElementById("lockVeil");
+  var lockNew = document.getElementById("lockNew");
+  var lockNewErr = document.getElementById("lockNewErr");
+  function openLockSheet(){
+    lockNew.value = ""; lockNewErr.hidden = true;
+    lockSheet.hidden = false; lockVeil.classList.add("on");
+    requestAnimationFrame(function(){
+      lockSheet.classList.add("on");
+      setTimeout(function(){ lockNew.focus(); }, 320);
+    });
+  }
+  function closeLockSheet(){
+    lockSheet.classList.remove("on"); lockVeil.classList.remove("on");
+    setTimeout(function(){ if(!lockSheet.classList.contains("on")) lockSheet.hidden = true; }, 320);
+  }
+  lockVeil.addEventListener("click", closeLockSheet);
+  document.getElementById("lockCancel").addEventListener("click", closeLockSheet);
+  document.getElementById("lockSave").addEventListener("click", function(){
+    var v = lockNew.value;
+    if(String(v).replace(/\s+/g,"").length < 4){
+      lockNewErr.textContent = "4文字以上にしてください。忘れると開けなくなります。";
+      lockNewErr.hidden = false; return;
+    }
+    sha256hex("nippon-seiha-lock:", v).then(function(h){
+      try{ localStorage.setItem(LOCKKEY, h); }catch(e){}
+      closeLockSheet();
+      return registerFace();
+    }).then(function(ok){
+      setLockUI();
+      alert(ok ? "設定しました。次に開くときからFace IDで確認します。"
+               : "設定しました。この端末ではFace IDが使えないため、合言葉で開きます。");
+    });
+  });
+  lockBtn.addEventListener("click", function(){
+    if(lockHash()){
+      if(!confirm("鍵を外しますか。次からは確認なしで開きます。")) return;
+      try{ localStorage.removeItem(LOCKKEY); localStorage.removeItem(CREDKEY); }catch(e){}
+      setLockUI();
+    }else{
+      openLockSheet();
+    }
+  });
+
+  setLockUI();
+  if(lockHash()) showLock();
+  else document.documentElement.removeAttribute("data-locked");
 
   renderChips();
   paint();
