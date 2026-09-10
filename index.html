@@ -284,7 +284,11 @@
     background:var(--surface-2);border:1px solid var(--line-soft);
     display:flex;align-items:center;justify-content:center;padding:0;
   }
-  .pcell img{width:100%;height:100%;object-fit:cover;display:block}
+  .pcell img{
+    display:block;position:absolute;top:0;left:0;width:100%;height:100%;
+    object-fit:cover;   /* 大きさの分かっていない古い写真はこちらで収める */
+  }
+  .pcell img.placed{object-fit:fill}   /* 位置と大きさを自分で決めたもの */
   .pcell.add{border-style:dashed;border-color:var(--line);color:var(--ink-3);font-size:21px;font-weight:400}
   .pcell.add:hover{border-color:var(--blue);color:var(--blue)}
   .pcell.busy{color:var(--ink-3);font-size:11px;letter-spacing:.08em}
@@ -299,9 +303,13 @@
     touch-action:none;background:#000;border:2px dashed rgba(255,255,255,.6);
   }
   .pcrop .frame img{
-    width:100%;height:100%;object-fit:cover;display:block;
+    display:block;position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;
     pointer-events:none;-webkit-user-select:none;user-select:none;
   }
+  .pcrop .frame img.placed{object-fit:fill}
+  .pcrop .zoom{display:flex;align-items:center;gap:12px;width:min(78vw,320px)}
+  .pcrop .zoom span{color:rgba(255,255,255,.7);font-size:15px;line-height:1;flex:none}
+  .pcrop .zoom input{flex:1;accent-color:#E8C368;height:26px}
   .pcrop .lead{color:rgba(255,255,255,.78);font-size:12.5px;margin:0;text-align:center;line-height:1.7}
 
   .pview{
@@ -769,8 +777,13 @@
 </div>
 
 <div class="pcrop" id="pcrop" hidden>
-  <p class="lead">指で動かして、一覧に出したいところを枠に入れてください</p>
+  <p class="lead">指で動かして位置を、二本指でつまんで大きさを決められます</p>
   <div class="frame" id="cropFrame"><img id="cropImg" alt=""></div>
+  <div class="zoom">
+    <span>小</span>
+    <input id="cropZoom" type="range" min="100" max="400" value="100" step="1" aria-label="大きさ">
+    <span>大</span>
+  </div>
   <div class="pview-bar">
     <button id="cropCancel" type="button">やめる</button>
     <button id="cropOk" type="button">これでよい</button>
@@ -863,8 +876,13 @@
     return PREFS.filter(function(p){ return p[2] === area; }).map(function(p){ return p[0]; });
   }
 
-  var APP_VERSION = "2.5";
+  var APP_VERSION = "2.6";
   var CHANGELOG = [
+    ["2.6", "2026-09-11", [
+      "写真の表示位置を決めるとき、大きさも変えられるようにしました",
+      "二本指でつまんで広げるか、下のつまみで細かく合わせられます",
+      "拡大の具合も共有に乗るので、相手の端末でも同じ見え方になります"
+    ]],
     ["2.5", "2026-09-11", [
       "制覇済みの県で「到来」を押しても、確認なしに制覇が消えることはなくなりました",
       "取り消す操作はすべて確認を出します。何が消えて何が残るかも表示します",
@@ -1615,8 +1633,44 @@
     return {
       data: v.data,
       px: (typeof v.px === "number") ? v.px : 0.5,
-      py: (typeof v.py === "number") ? v.py : 0.5
+      py: (typeof v.py === "number") ? v.py : 0.5,
+      zoom: (typeof v.zoom === "number" && v.zoom >= 1) ? v.zoom : 1,
+      w: (typeof v.w === "number") ? v.w : 0,
+      h: (typeof v.h === "number") ? v.h : 0
     };
+  }
+  /* 枠に対する写真の大きさと位置を、割合で求める。
+     枠の実寸を測らずに済むので、描く前から決められる */
+  function placement(rec){
+    if(!rec.w || !rec.h) return null;
+    var ar = rec.w / rec.h, z = rec.zoom || 1, wf, hf;
+    if(ar >= 1){ hf = z; wf = ar * z; } else { wf = z; hf = z / ar; }
+    return {
+      wf: wf, hf: hf,
+      width:  (wf * 100) + "%",
+      height: (hf * 100) + "%",
+      left:   (-(wf - 1) * rec.px * 100) + "%",
+      top:    (-(hf - 1) * rec.py * 100) + "%"
+    };
+  }
+  function placeImg(im, rec){
+    var pl = placement(rec);
+    if(!pl){
+      /* 大きさが分からない写真。読み込めた時点で控えて、次から自分で置く */
+      im.className = "";
+      im.style.objectPosition = (rec.px * 100).toFixed(1) + "% " + (rec.py * 100).toFixed(1) + "%";
+      im.style.width = "100%"; im.style.height = "100%"; im.style.left = "0"; im.style.top = "0";
+      im.addEventListener("load", function(){
+        if(rec.w && rec.h) return;
+        rec.w = im.naturalWidth; rec.h = im.naturalHeight;
+        placeImg(im, rec);
+      });
+      return;
+    }
+    im.className = "placed";
+    im.style.width = pl.width; im.style.height = pl.height;
+    im.style.left = pl.left; im.style.top = pl.top;
+    im.style.objectPosition = "";
   }
 
   function idb(){
@@ -1649,7 +1703,7 @@
     return new Promise(function(res, rej){
       var url = URL.createObjectURL(file), img = new Image();
       img.onload = function(){
-        var out = null;
+        var out = null, outW = 0, outH = 0;
         for(var i = 0; i < steps.length; i++){
           var maxEdge = steps[i][0], q = steps[i][1];
           var w = img.naturalWidth, h = img.naturalHeight;
@@ -1658,11 +1712,11 @@
           c.width = Math.max(1, Math.round(w * sc));
           c.height = Math.max(1, Math.round(h * sc));
           c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
-          out = c.toDataURL("image/jpeg", q);
+          out = c.toDataURL("image/jpeg", q); outW = c.width; outH = c.height;
           if(out.length < 700000) break;   /* Firestoreは1件1MBまで。余裕をみて70万字 */
         }
         URL.revokeObjectURL(url);
-        out ? res(out) : rej(new Error("変換できませんでした"));
+        out ? res({ data: out, w: outW, h: outH }) : rej(new Error("変換できませんでした"));
       };
       img.onerror = function(){ URL.revokeObjectURL(url); rej(new Error("読み込めませんでした")); };
       img.src = url;
@@ -1712,8 +1766,8 @@
             var cell = document.createElement("button");
             cell.type = "button"; cell.className = "pcell" + (src ? "" : " add");
             if(src){
-              var im = document.createElement("img"); im.src = src.data; im.alt = "";
-              im.style.objectPosition = (src.px * 100).toFixed(1) + "% " + (src.py * 100).toFixed(1) + "%";
+              var im = document.createElement("img"); im.alt = "";
+              placeImg(im, src); im.src = src.data;
               cell.appendChild(im);
               cell.addEventListener("click", function(){ openPview(id); });
             }else{
@@ -1740,15 +1794,15 @@
     var job = pending; pending = null;
     var id = photoId(job.code, job.kind, job.slot);
     var cell = null;
-    shrink(file).then(function(dataUrl){
-      var rec = { data: dataUrl, px: 0.5, py: 0.5 };
+    shrink(file).then(function(out){
+      var rec = { data: out.data, px: 0.5, py: 0.5, zoom: 1, w: out.w, h: out.h };
       photoCache[id] = rec;
       renderPhotos();
       idbPut(id, rec);
       if(roomId && window.__cloud && window.__cloud.photoSave){
         return window.__cloud.photoSave(roomId, id, {
           code: job.code, kind: job.kind, slot: job.slot,
-          data: dataUrl, px: 0.5, py: 0.5, t: Date.now()
+          data: out.data, px: 0.5, py: 0.5, zoom: 1, w: out.w, h: out.h, t: Date.now()
         }).catch(function(){
           alert("写真はこの端末に保存しましたが、共有には送れませんでした。通信とFirestoreの設定をご確認ください。");
         });
@@ -1788,54 +1842,98 @@
   var pcrop = document.getElementById("pcrop");
   var cropFrame = document.getElementById("cropFrame");
   var cropImg = document.getElementById("cropImg");
-  var cropId = null, cropPx = 0.5, cropPy = 0.5, cropDrag = false, cropLX = 0, cropLY = 0;
+  var cropZoomEl = document.getElementById("cropZoom");
+  var cropId = null, cropPx = 0.5, cropPy = 0.5, cropZ = 1;
+  var cropW = 0, cropH = 0;
+  var cropLX = 0, cropLY = 0;
+  var pts = {};            /* いま触れている指 */
+  var pinchD0 = 0, pinchZ0 = 1;
 
+  function cropRec(){ return { px: cropPx, py: cropPy, zoom: cropZ, w: cropW, h: cropH }; }
   function applyCrop(){
-    cropImg.style.objectPosition = (cropPx * 100).toFixed(1) + "% " + (cropPy * 100).toFixed(1) + "%";
+    placeImg(cropImg, cropRec());
+    cropZoomEl.value = Math.round(cropZ * 100);
   }
   function openCrop(id){
     var rec = photoCache[id]; if(!rec) return;
-    cropId = id; cropPx = rec.px; cropPy = rec.py;
-    cropImg.src = rec.data; applyCrop();
+    cropId = id; cropPx = rec.px; cropPy = rec.py; cropZ = rec.zoom || 1;
+    cropW = rec.w; cropH = rec.h;
+    pts = {};
+    cropImg.src = rec.data;
+    if(!cropW || !cropH){
+      /* 大きさが分からない古い写真は、読み込めてから決める */
+      cropImg.addEventListener("load", function once(){
+        cropImg.removeEventListener("load", once);
+        cropW = cropImg.naturalWidth; cropH = cropImg.naturalHeight;
+        applyCrop();
+      });
+    }
+    applyCrop();
     pcrop.hidden = false;
   }
+  cropZoomEl.addEventListener("input", function(){
+    cropZ = Math.max(1, Math.min(4, (+cropZoomEl.value || 100) / 100));
+    applyCrop();
+  });
   function closeCrop(){ pcrop.hidden = true; cropImg.src = ""; cropId = null; }
 
+  function pinchDist(){
+    var k = Object.keys(pts);
+    if(k.length < 2) return 0;
+    var a = pts[k[0]], b = pts[k[1]];
+    return Math.sqrt(Math.pow(a.x - b.x, 2) + Math.pow(a.y - b.y, 2));
+  }
   cropFrame.addEventListener("pointerdown", function(ev){
-    cropDrag = true; cropLX = ev.clientX; cropLY = ev.clientY;
+    pts[ev.pointerId] = { x: ev.clientX, y: ev.clientY };
+    cropLX = ev.clientX; cropLY = ev.clientY;
+    if(Object.keys(pts).length === 2){ pinchD0 = pinchDist(); pinchZ0 = cropZ; }
     try{ cropFrame.setPointerCapture(ev.pointerId); }catch(e){}
   });
   cropFrame.addEventListener("pointermove", function(ev){
-    if(!cropDrag) return;
+    if(!pts[ev.pointerId]) return;
     ev.preventDefault();
+    var prev = pts[ev.pointerId];
+    pts[ev.pointerId] = { x: ev.clientX, y: ev.clientY };
+
+    if(Object.keys(pts).length >= 2){
+      /* 二本指：指の間隔の変化ぶんだけ拡大する */
+      var d = pinchDist();
+      if(pinchD0 > 4 && d > 4){
+        cropZ = Math.max(1, Math.min(4, pinchZ0 * (d / pinchD0)));
+        applyCrop();
+      }
+      return;
+    }
+    /* 一本指：はみ出している量のぶんだけ動かす。端まで来たら止まる */
+    var pl = placement(cropRec()); if(!pl) return;
     var W = cropFrame.clientWidth, H = cropFrame.clientHeight;
-    var w = cropImg.naturalWidth, h = cropImg.naturalHeight;
-    if(!w || !h) return;
-    /* はみ出している量のぶんだけ動かせる。端まで来たら止まる */
-    var sc = Math.max(W / w, H / h);
-    var ox = w * sc - W, oy = h * sc - H;
-    var dx = ev.clientX - cropLX, dy = ev.clientY - cropLY;
-    cropLX = ev.clientX; cropLY = ev.clientY;
+    var ox = (pl.wf - 1) * W, oy = (pl.hf - 1) * H;
+    var dx = ev.clientX - prev.x, dy = ev.clientY - prev.y;
     if(ox > 0.5) cropPx = Math.min(1, Math.max(0, cropPx - dx / ox));
     if(oy > 0.5) cropPy = Math.min(1, Math.max(0, cropPy - dy / oy));
     applyCrop();
   });
-  function endDrag(){ cropDrag = false; }
-  cropFrame.addEventListener("pointerup", endDrag);
-  cropFrame.addEventListener("pointercancel", endDrag);
-  cropFrame.addEventListener("pointerleave", endDrag);
+  function endPoint(ev){
+    delete pts[ev.pointerId];
+    if(Object.keys(pts).length < 2){ pinchD0 = 0; }
+  }
+  cropFrame.addEventListener("pointerup", endPoint);
+  cropFrame.addEventListener("pointercancel", endPoint);
+  cropFrame.addEventListener("pointerleave", endPoint);
 
   document.getElementById("cropCancel").addEventListener("click", closeCrop);
   document.getElementById("cropOk").addEventListener("click", function(){
     var id = cropId; if(!id){ closeCrop(); return; }
     var rec = photoCache[id]; if(!rec){ closeCrop(); return; }
-    rec.px = cropPx; rec.py = cropPy;
+    rec.px = cropPx; rec.py = cropPy; rec.zoom = cropZ;
+    if(cropW && cropH){ rec.w = cropW; rec.h = cropH; }
     idbPut(id, rec);
     if(roomId && window.__cloud && window.__cloud.photoSave){
       var parts = id.split("_");
       window.__cloud.photoSave(roomId, id, {
         code: +parts[0], kind: parts[1], slot: +parts[2],
-        data: rec.data, px: rec.px, py: rec.py, t: Date.now()
+        data: rec.data, px: rec.px, py: rec.py, zoom: rec.zoom,
+        w: rec.w || 0, h: rec.h || 0, t: Date.now()
       }).catch(function(){});
     }
     closeCrop(); closePview(); renderPhotos();
