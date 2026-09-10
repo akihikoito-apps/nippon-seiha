@@ -286,6 +286,7 @@
   }
   .pcell img{
     display:block;position:absolute;top:0;left:0;width:100%;height:100%;
+    max-width:none;max-height:none;   /* 全体の img{max-width:100%} に潰されないように */
     object-fit:cover;   /* 大きさの分かっていない古い写真はこちらで収める */
   }
   .pcell img.placed{object-fit:fill}   /* 位置と大きさを自分で決めたもの */
@@ -304,6 +305,7 @@
   }
   .pcrop .frame img{
     display:block;position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;
+    max-width:none;max-height:none;   /* 同上。ここが効かないと写真が潰れる */
     pointer-events:none;-webkit-user-select:none;user-select:none;
   }
   .pcrop .frame img.placed{object-fit:fill}
@@ -876,8 +878,12 @@
     return PREFS.filter(function(p){ return p[2] === area; }).map(function(p){ return p[0]; });
   }
 
-  var APP_VERSION = "2.6";
+  var APP_VERSION = "2.7";
   var CHANGELOG = [
+    ["2.7", "2026-09-11", [
+      "写真が縦横比を保たずに潰れて表示されていたのを直しました",
+      "拡大したときだけでなく、等倍のときも潰れていました"
+    ]],
     ["2.6", "2026-09-11", [
       "写真の表示位置を決めるとき、大きさも変えられるようにしました",
       "二本指でつまんで広げるか、下のつまみで細かく合わせられます",
