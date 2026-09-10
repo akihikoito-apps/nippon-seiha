@@ -275,6 +275,35 @@
     display:block;font-family:"Shippori Mincho","Yu Mincho",serif;font-size:18px;
     color:var(--ink-2);letter-spacing:.12em;margin-bottom:6px;
   }
+
+  /* ── 共有の状態 ── */
+  .sync{
+    display:flex;align-items:center;gap:9px;
+    font-size:12px;color:var(--ink-2);letter-spacing:.04em;
+  }
+  .sync .sdot{
+    width:8px;height:8px;border-radius:50%;background:var(--line);flex:none;
+    box-shadow:0 0 0 3px rgba(207,221,230,.35);
+  }
+  .sync[data-state="on"] .sdot{background:#2E9E6B;box-shadow:0 0 0 3px rgba(46,158,107,.18)}
+  .sync[data-state="err"] .sdot{background:var(--red);box-shadow:0 0 0 3px rgba(206,50,34,.16)}
+  .sync .slink{
+    margin-left:auto;border:none;background:none;padding:0;
+    color:var(--blue);font-size:12.5px;font-weight:700;text-decoration:underline;white-space:nowrap;
+  }
+
+  /* ── 合言葉 ── */
+  .pass-title{
+    font-family:"Shippori Mincho","Yu Mincho",serif;font-weight:800;
+    font-size:23px;margin:0;letter-spacing:.1em;
+  }
+  .pass-note{margin:0;font-size:13px;line-height:1.85;color:var(--ink-2)}
+  .pass-input{
+    font-family:inherit;font-size:17px;color:var(--ink);background:var(--surface-2);
+    border:1.5px solid var(--line);border-radius:12px;padding:13px 15px;width:100%;
+  }
+  .pass-input:focus{outline:none;border-color:var(--blue);background:var(--surface)}
+  .pass-err{margin:0;font-size:12.5px;color:var(--red)}
 </style>
 </head>
 <body>
@@ -530,6 +559,12 @@
     <div class="chips" id="chips"></div>
   </nav>
 
+  <div class="sync" id="syncRow" data-state="off">
+    <span class="sdot"></span>
+    <span id="syncText">この端末だけに保存しています</span>
+    <button class="slink" id="syncBtn" type="button">共有をはじめる</button>
+  </div>
+
   <p class="credit">地図データ：Geolonia「SVG Map of Japan」（Wikipedia「日本地図.svg」に基づく／GFDL）</p>
 </div>
 
@@ -575,6 +610,24 @@
   </div>
 </div>
 
+<div class="veil" id="passVeil"></div>
+<div class="sheet" id="passSheet" role="dialog" aria-modal="true" aria-labelledby="passTitle" hidden>
+  <div class="sheet-inner">
+    <div class="grip"></div>
+    <h2 class="pass-title" id="passTitle">合言葉を入れる</h2>
+    <p class="pass-note">
+      おふたりで決めた<b>同じ合言葉</b>を、両方の端末で入れてください。同じ合言葉どうしが、ひとつの記録につながります。<br>
+      合言葉はこの端末の中だけに残ります。どこにも公開されません。
+    </p>
+    <input class="pass-input" id="passInput" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="ふたりで決めた言葉">
+    <p class="pass-err" id="passErr" hidden></p>
+    <div class="sheet-foot">
+      <button class="clear" id="passCancel" type="button">やめる</button>
+      <button class="done" id="passOk" type="button">つなぐ</button>
+    </div>
+  </div>
+</div>
+
 <script>
 (function(){
   "use strict";
@@ -610,6 +663,11 @@
   var data = {};
   try{ data = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; }catch(e){ data = {}; }
   function persist(){ try{ localStorage.setItem(KEY, JSON.stringify(data)); }catch(e){} }
+  /* 共有では「どちらが新しいか」を県ごとの時刻で決める。
+     共有を入れる前の記録には時刻がないので 0 を補う（あとから入った記録が勝つ） */
+  Object.keys(data).forEach(function(c){
+    if(typeof data[c].t !== "number") data[c].t = 0;
+  });
 
   function today(){
     var d = new Date(), m = d.getMonth()+1, dd = d.getDate();
@@ -878,26 +936,34 @@
     var i = document.createElement("input"); i.type = "date"; i.value = value;
     i.addEventListener("change", function(){
       if(!i.value || !data[currentCode]) return;
-      data[currentCode][field] = i.value; persist(); renderTrail();
+      data[currentCode][field] = i.value; data[currentCode].t = Date.now();
+      persist(); renderTrail(); pushCloud();
     });
     row.appendChild(s); row.appendChild(i);
     return row;
   }
 
+  /* 消したことも記録に残す。消さずに空にしないと、相手の端末で復活してしまう */
+  function clearPref(code){ data[code] = {t:0}; }
+  function afterEdit(code){
+    if(data[code]) data[code].t = Date.now();
+    persist(); fillSheet(); paint(); renderChips(); renderTrail(); pushCloud();
+  }
+
   mArr.addEventListener("click", function(){
     var code = currentCode, r = data[code] || (data[code] = {});
-    if(r.arrived && !r.conquered) delete data[code];
+    if(r.arrived && !r.conquered) clearPref(code);
     else { if(!r.arrived) r.arrived = today(); delete r.conquered; }
-    persist(); fillSheet(); paint(); renderChips(); renderTrail();
+    afterEdit(code);
   });
   mConq.addEventListener("click", function(){
     var code = currentCode, r = data[code] || (data[code] = {});
-    if(r.conquered){ delete r.conquered; if(!r.arrived) delete data[code]; }
+    if(r.conquered){ delete r.conquered; if(!r.arrived) clearPref(code); }
     else { if(!r.arrived) r.arrived = today(); r.conquered = today(); }
-    persist(); fillSheet(); paint(); renderChips(); renderTrail();
+    afterEdit(code);
   });
   document.getElementById("clearBtn").addEventListener("click", function(){
-    delete data[currentCode]; persist(); fillSheet(); paint(); renderChips(); renderTrail();
+    clearPref(currentCode); afterEdit(currentCode);
   });
 
   /* ── 記録：両方 / 到来 / 制覇 ── */
@@ -973,11 +1039,162 @@
   document.getElementById("openLog").addEventListener("click", openLog);
   document.getElementById("closeLog").addEventListener("click", closeLog);
 
+  /* ── ふたりで共有する ─────────────────────────────
+     同じ合言葉から同じ保存先の名前を作る。合言葉そのものは送らず、
+     取り返しのつかない形（SHA-256）に変えた32文字だけを使う。 */
+  var PASSKEY = "nippon-seiha.room";
+  var roomId = null, unwatch = null, pushTimer = null;
+  var syncRow = document.getElementById("syncRow");
+  var syncText = document.getElementById("syncText");
+  var syncBtn = document.getElementById("syncBtn");
+
+  function setSync(state, note){
+    syncRow.setAttribute("data-state", state);
+    syncText.textContent = note;
+    syncBtn.textContent = (state === "on") ? "共有をやめる" : "共有をはじめる";
+  }
+  function roomFrom(pass){
+    var norm = String(pass||"").normalize("NFKC").replace(/\s+/g,"").toLowerCase();
+    var enc = new TextEncoder().encode("nippon-seiha:" + norm);
+    return crypto.subtle.digest("SHA-256", enc).then(function(buf){
+      return Array.prototype.map.call(new Uint8Array(buf), function(b){
+        return ("0" + b.toString(16)).slice(-2);
+      }).join("").slice(0, 32);
+    });
+  }
+  function refreshAll(){
+    paint(); renderChips(); renderTrail();
+    if(!sheet.hidden && currentCode) fillSheet();
+  }
+  /* 県ごとに新しいほうを採る。まるごと上書きしないので、
+     ふたりが同時に別の県を塗っても消し合わない */
+  function mergeRemote(remote){
+    remote = remote || {};
+    var changed = false, mineIsNewer = false;
+    Object.keys(remote).forEach(function(code){
+      var r = remote[code] || {}, l = data[code];
+      if(!l || (r.t||0) > (l.t||0)){ data[code] = r; changed = true; }
+      else if((l.t||0) > (r.t||0)) mineIsNewer = true;
+    });
+    Object.keys(data).forEach(function(code){
+      if(!remote[code]) mineIsNewer = true;
+    });
+    if(changed){ persist(); refreshAll(); }
+    if(mineIsNewer) pushCloud(true);
+  }
+  function pushCloud(now){
+    if(!roomId || !window.__cloud) return;
+    if(pushTimer) clearTimeout(pushTimer);
+    pushTimer = setTimeout(function(){
+      window.__cloud.save(roomId, data).catch(function(){
+        setSync("err", "共有に書き込めませんでした");
+      });
+    }, now ? 0 : 500);
+  }
+  function startSync(pass){
+    if(!window.__cloud){ setSync("err", "共有の準備ができていません"); return; }
+    setSync("off", "つないでいます…");
+    roomFrom(pass).then(function(id){
+      roomId = id;
+      try{ localStorage.setItem(PASSKEY, pass); }catch(e){}
+      if(unwatch) unwatch();
+      unwatch = window.__cloud.watch(id, function(remote){
+        setSync("on", "ふたりで共有中");
+        mergeRemote(remote);
+      }, function(){
+        setSync("err", "共有につながりません");
+      });
+    }).catch(function(){ setSync("err", "合言葉を読み取れませんでした"); });
+  }
+  function stopSync(){
+    if(unwatch){ unwatch(); unwatch = null; }
+    roomId = null;
+    try{ localStorage.removeItem(PASSKEY); }catch(e){}
+    setSync("off", "この端末だけに保存しています");
+  }
+
+  /* 合言葉の画面 */
+  var passSheet = document.getElementById("passSheet");
+  var passVeil = document.getElementById("passVeil");
+  var passInput = document.getElementById("passInput");
+  var passErr = document.getElementById("passErr");
+  function openPass(){
+    passErr.hidden = true;
+    try{ passInput.value = localStorage.getItem(PASSKEY) || ""; }catch(e){ passInput.value = ""; }
+    passSheet.hidden = false; passVeil.classList.add("on");
+    requestAnimationFrame(function(){
+      passSheet.classList.add("on");
+      setTimeout(function(){ passInput.focus(); }, 320);
+    });
+  }
+  function closePass(){
+    passSheet.classList.remove("on"); passVeil.classList.remove("on");
+    setTimeout(function(){ if(!passSheet.classList.contains("on")) passSheet.hidden = true; }, 320);
+  }
+  passVeil.addEventListener("click", closePass);
+  document.getElementById("passCancel").addEventListener("click", closePass);
+  document.getElementById("passOk").addEventListener("click", function(){
+    var v = passInput.value;
+    if(String(v).replace(/\s+/g,"").length < 3){
+      passErr.textContent = "3文字以上にしてください。おふたりで同じ言葉を使います。";
+      passErr.hidden = false; return;
+    }
+    closePass(); startSync(v);
+  });
+  passInput.addEventListener("keydown", function(ev){
+    if(ev.key === "Enter") document.getElementById("passOk").click();
+  });
+  syncBtn.addEventListener("click", function(){
+    if(roomId) stopSync(); else openPass();
+  });
+
+  function bootSync(){
+    var saved = null;
+    try{ saved = localStorage.getItem(PASSKEY); }catch(e){}
+    if(saved) startSync(saved);
+  }
+  if(window.__cloud) bootSync();
+  else window.addEventListener("cloud-ready", bootSync);
+
   renderChips();
   paint();
   renderTrail();
   showWhole();
 })();
+</script>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
+  import { getFirestore, doc, onSnapshot, setDoc }
+    from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+
+  /* この設定値は公開してよいもの。守りは保存先の名前（合言葉から作る）と
+     Firestore 側のアクセス規則で行う */
+  const firebaseConfig = {
+    apiKey: "AIzaSyA96UMR7-jYymMMm7yWYRJcUKA_Q9QfSlI",
+    authDomain: "nippon-seiha-33a2f.firebaseapp.com",
+    projectId: "nippon-seiha-33a2f",
+    storageBucket: "nippon-seiha-33a2f.firebasestorage.app",
+    messagingSenderId: "898377524858",
+    appId: "1:898377524858:web:573f03cba34e58585bfdc3"
+  };
+
+  try{
+    const db = getFirestore(initializeApp(firebaseConfig));
+    window.__cloud = {
+      watch: function(roomId, onData, onError){
+        return onSnapshot(doc(db, "rooms", roomId),
+          function(snap){ onData(snap.exists() ? (snap.data().records || {}) : {}); },
+          function(err){ console.log("watch error", err); if(onError) onError(err); });
+      },
+      save: function(roomId, records){
+        return setDoc(doc(db, "rooms", roomId), { records: records, updatedAt: Date.now() });
+      }
+    };
+    window.dispatchEvent(new Event("cloud-ready"));
+  }catch(e){
+    console.log("firebase init failed", e);
+  }
 </script>
 
 </body>
