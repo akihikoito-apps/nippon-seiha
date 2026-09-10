@@ -225,6 +225,13 @@
     border:none;border-bottom:1px solid var(--line);padding:2px 2px 3px;
     font-variant-numeric:tabular-nums;
   }
+  .dnote{
+    margin:-2px 2px 0;font-size:12px;line-height:1.7;color:var(--ink-3);letter-spacing:.02em;
+  }
+  .dsplit{
+    border:none;background:none;padding:0;margin-left:4px;
+    color:var(--blue);font-size:12px;font-weight:700;text-decoration:underline;
+  }
   .sheet-foot{display:flex;align-items:center;justify-content:space-between;gap:12px}
   .clear{border:none;background:none;padding:0;color:var(--ink-3);font-size:12.5px;text-decoration:underline}
   .done{
@@ -853,7 +860,7 @@
     document.getElementById("barArr").style.width = (arr/47*100) + "%";
   }
 
-  var currentArea = null, currentCode = null;
+  var currentArea = null, currentCode = null, splitDates = false;
   var chips = document.getElementById("chips");
   var pickerLabel = document.getElementById("pickerLabel");
   var backBtn = document.getElementById("backBtn");
@@ -928,6 +935,7 @@
 
   function openSheet(code){
     var areaChanged = (AREA_OF[code] !== currentArea);
+    splitDates = false;
     currentCode = code;
     currentArea = AREA_OF[code];
     renderChips(); fillSheet(); paint();
@@ -957,8 +965,24 @@
     mArr.setAttribute("aria-pressed", (st === "arrived" || st === "conquered") ? "true" : "false");
     mConq.setAttribute("aria-pressed", st === "conquered" ? "true" : "false");
     elDates.textContent = "";
-    if(r.arrived) elDates.appendChild(dateRow("到来した日", "arrived", r.arrived));
-    if(r.conquered) elDates.appendChild(dateRow("制覇した日", "conquered", r.conquered));
+    var sameDay = r.arrived && r.conquered && r.arrived === r.conquered;
+    if(sameDay && !splitDates){
+      /* 一気に制覇した県。日付は1つだけ聞き、到来も同じ日で持っておく */
+      elDates.appendChild(dateRow("制覇した日", "both", r.conquered));
+      elDates.appendChild(sameDayNote());
+    }else{
+      if(r.arrived) elDates.appendChild(dateRow("到来した日", "arrived", r.arrived));
+      if(r.conquered) elDates.appendChild(dateRow("制覇した日", "conquered", r.conquered));
+    }
+  }
+  function sameDayNote(){
+    var pEl = document.createElement("p"); pEl.className = "dnote";
+    pEl.appendChild(document.createTextNode("到来も同じ日で記録しています。"));
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "dsplit"; b.textContent = "初めて行った日は別";
+    b.addEventListener("click", function(){ splitDates = true; fillSheet(); });
+    pEl.appendChild(b);
+    return pEl;
   }
   function dateRow(label, field, value){
     var row = document.createElement("div"); row.className = "daterow";
@@ -966,7 +990,18 @@
     var i = document.createElement("input"); i.type = "date"; i.value = value;
     i.addEventListener("change", function(){
       if(!i.value || !data[currentCode]) return;
-      data[currentCode][field] = i.value; data[currentCode].t = Date.now();
+      var rec = data[currentCode];
+      if(field === "both"){ rec.arrived = i.value; rec.conquered = i.value; }
+      else {
+        rec[field] = i.value;
+        /* 到来が制覇より後ろになってしまったら、制覇の日にそろえる */
+        if(rec.arrived && rec.conquered && rec.arrived > rec.conquered){
+          if(field === "arrived") rec.arrived = rec.conquered;
+          else rec.conquered = rec.arrived;
+          i.value = rec[field];
+        }
+      }
+      rec.t = Date.now();
       persist(); renderTrail(); pushCloud();
     });
     row.appendChild(s); row.appendChild(i);
