@@ -17,9 +17,11 @@
   /* ── 空と海の明るい地に、朱の判子。単一テーマで通す ── */
   :root{
     color-scheme:light;
-    --sky-top:#FBFDFE;
-    --sky-mid:#E9F1F6;
-    --sky-low:#DFEAF1;
+    --sky-top:#FCFDFE;
+    --sky-mid:#F1F6F9;
+    --sky-low:#E7EEF3;
+    --sea-1:#D6E9F4;
+    --sea-2:#BEDCEC;
     --surface:#FFFFFF;
     --surface-2:#EDF3F7;
     --ink:#14212C;
@@ -35,7 +37,7 @@
     --red:#D8392A;
     --red-wash:#FADFDB;
     --land:#FFFFFF;
-    --land-line:#B6C7D2;
+    --land-line:#7C9EB4;
     --shadow-s:0 1px 2px rgba(20,33,44,.05);
     --shadow-m:0 2px 6px rgba(20,33,44,.06), 0 14px 34px rgba(20,33,44,.09);
   }
@@ -106,13 +108,17 @@
   .bar .b-arr{background:var(--pink)}
 
   /* ── 地図 ── */
+  /* 地図の枠は「海」。白い陸が浮くよう、淡い青を敷く */
   .mapwrap{
-    position:relative;background:var(--surface);border:1px solid var(--line-soft);
-    border-radius:18px;padding:6px;box-shadow:var(--shadow-m);
+    position:relative;
+    background:var(--sea-1);
+    background-image:linear-gradient(168deg,var(--sea-1) 0%,var(--sea-2) 100%);
+    border:1px solid #A6C9DE;
+    border-radius:18px;overflow:hidden;box-shadow:var(--shadow-m);
   }
   .geolonia-svg-map{display:block;width:100%;height:auto;touch-action:manipulation}
   .prefecture{
-    fill:var(--land);stroke:var(--land-line);stroke-width:1.1;
+    fill:var(--land);stroke:var(--land-line);stroke-width:1;
     cursor:pointer;transition:fill .25s ease, opacity .3s ease;
   }
   .prefecture.is-arrived{fill:var(--pink)}
@@ -122,8 +128,9 @@
   .boundary-line{display:none}
   @media (prefers-reduced-motion: reduce){ .prefecture,.bar i{transition:none} }
   .maphint{
-    position:absolute;left:16px;bottom:11px;margin:0;font-size:11px;color:var(--ink-3);
-    letter-spacing:.06em;pointer-events:none;
+    position:absolute;left:12px;bottom:10px;margin:0;
+    font-size:11px;color:var(--ink-2);letter-spacing:.06em;pointer-events:none;
+    background:rgba(255,255,255,.82);padding:3px 10px;border-radius:999px;
   }
 
   /* ── エリア・県 ── */
@@ -274,7 +281,6 @@
     <div class="brand">
       <h1>日本制覇</h1>
       <span class="rule"></span>
-      <p>ふたりの記録</p>
     </div>
     <button class="ghost" id="openLog" type="button">記録を見る</button>
   </header>
