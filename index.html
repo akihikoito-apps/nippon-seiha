@@ -5,82 +5,49 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>日本制覇</title>
 <meta name="description" content="ふたりで47都道府県をめぐる記録帳。行った県は薄紅、やりきった県は朱に。">
-<meta name="theme-color" content="#E9E9E1" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#14171A" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#F4F8FA">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="日本制覇">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23E9E9E1'/%3E%3Ccircle cx='32' cy='32' r='17' fill='%23C13B2D'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23F2F7FA'/%3E%3Ccircle cx='32' cy='32' r='17' fill='%23D8392A'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
 <style>
+  /* ── 空と海の明るい地に、朱の判子。単一テーマで通す ── */
   :root{
-    color-scheme:light dark;
-    --ground:#E9E9E1;
+    color-scheme:light;
+    --sky-top:#FBFDFE;
+    --sky-mid:#E9F1F6;
+    --sky-low:#DFEAF1;
     --surface:#FFFFFF;
-    --surface-2:#F4F4EE;
-    --ink:#1B2530;
-    --ink-2:#5A6572;
-    --ink-3:#8B95A0;
-    --line:#CDCDC3;
-    --line-soft:#DEDED5;
-    --indigo:#27455F;
-    --indigo-ink:#FFFFFF;
-    --pink:#E4949B;
-    --pink-wash:#F7E2E4;
-    --red:#C13B2D;
-    --red-wash:#F3DCD8;
+    --surface-2:#EDF3F7;
+    --ink:#14212C;
+    --ink-2:#4E5F6D;
+    --ink-3:#8098A8;
+    --line:#CFDDE6;
+    --line-soft:#E1EAF0;
+    --blue:#16628F;
+    --blue-ink:#FFFFFF;
+    --blue-wash:#DDEAF3;
+    --pink:#F0959B;
+    --pink-wash:#FCE7E8;
+    --red:#D8392A;
+    --red-wash:#FADFDB;
     --land:#FFFFFF;
-    --land-line:#B9B9AE;
-    --shadow:0 1px 2px rgba(27,37,48,.06), 0 10px 28px rgba(27,37,48,.10);
-  }
-  @media (prefers-color-scheme: dark){
-    :root:not([data-theme="light"]){
-      --ground:#14171A;
-      --surface:#1D2227;
-      --surface-2:#252B31;
-      --ink:#E9E9E2;
-      --ink-2:#A3ACB5;
-      --ink-3:#79838D;
-      --line:#333A41;
-      --line-soft:#2A3037;
-      --indigo:#8FB4CD;
-      --indigo-ink:#12181D;
-      --pink:#D2848B;
-      --pink-wash:#3A2B2D;
-      --red:#CB4738;
-      --red-wash:#3B2422;
-      --land:#F2F0E9;
-      --land-line:#7C7C73;
-      --shadow:0 1px 2px rgba(0,0,0,.35), 0 10px 28px rgba(0,0,0,.40);
-    }
-  }
-  :root[data-theme="dark"]{
-    --ground:#14171A;
-    --surface:#1D2227;
-    --surface-2:#252B31;
-    --ink:#E9E9E2;
-    --ink-2:#A3ACB5;
-    --ink-3:#79838D;
-    --line:#333A41;
-    --line-soft:#2A3037;
-    --indigo:#8FB4CD;
-    --indigo-ink:#12181D;
-    --pink:#D2848B;
-    --pink-wash:#3A2B2D;
-    --red:#CB4738;
-    --red-wash:#3B2422;
-    --land:#F2F0E9;
-    --land-line:#7C7C73;
-    --shadow:0 1px 2px rgba(0,0,0,.35), 0 10px 28px rgba(0,0,0,.40);
+    --land-line:#B6C7D2;
+    --shadow-s:0 1px 2px rgba(20,33,44,.05);
+    --shadow-m:0 2px 6px rgba(20,33,44,.06), 0 14px 34px rgba(20,33,44,.09);
   }
 
   *{box-sizing:border-box}
   html{-webkit-text-size-adjust:100%}
   body{
     margin:0;
-    background:var(--ground);
+    min-height:100vh;
+    background:var(--sky-low);
+    background-image:linear-gradient(180deg,var(--sky-top) 0%,var(--sky-mid) 46%,var(--sky-low) 100%);
+    background-attachment:fixed;
     color:var(--ink);
     font-family:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic",system-ui,sans-serif;
     font-size:15px;
@@ -90,46 +57,58 @@
   }
   img{max-width:100%}
   [hidden]{display:none !important}
-  button{font-family:inherit;cursor:pointer}
-  :focus-visible{outline:2px solid var(--indigo);outline-offset:2px;border-radius:3px}
+  button{font-family:inherit;cursor:pointer;color:inherit}
+  :focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:4px}
 
   .app{
     max-width:560px;margin:0 auto;
-    padding:20px 14px calc(34px + env(safe-area-inset-bottom));
+    padding:22px 14px calc(34px + env(safe-area-inset-bottom));
     display:flex;flex-direction:column;gap:16px;
   }
 
+  /* ── 見出し ── */
   .top{display:flex;align-items:flex-end;justify-content:space-between;gap:14px}
   .brand h1{
     font-family:"Shippori Mincho","Yu Mincho",serif;
-    font-weight:700;font-size:28px;letter-spacing:.14em;margin:0;line-height:1.2;
+    font-weight:800;font-size:29px;letter-spacing:.16em;margin:0;line-height:1.15;
   }
-  .brand p{margin:5px 0 0;font-size:12px;letter-spacing:.18em;color:var(--ink-3)}
+  .brand .rule{
+    display:block;width:38px;height:3px;border-radius:2px;background:var(--red);margin:9px 0 7px;
+  }
+  .brand p{margin:0;font-size:11.5px;letter-spacing:.2em;color:var(--ink-3)}
   .ghost{
-    border:1px solid var(--line);background:transparent;color:var(--ink-2);
-    font-size:13px;font-weight:500;padding:8px 15px;border-radius:999px;
-    transition:border-color .15s,color .15s;white-space:nowrap;
+    border:1px solid var(--line);background:var(--surface);color:var(--ink-2);
+    font-size:13px;font-weight:700;padding:9px 16px;border-radius:999px;
+    box-shadow:var(--shadow-s);white-space:nowrap;
+    transition:border-color .15s,color .15s;
   }
-  .ghost:hover{border-color:var(--indigo);color:var(--indigo)}
+  .ghost:hover{border-color:var(--blue);color:var(--blue)}
 
-  .tally{display:flex;flex-direction:column;gap:9px}
-  .counts{display:flex;align-items:baseline;gap:20px}
+  /* ── 数え ── */
+  .tally{
+    background:var(--surface);border:1px solid var(--line-soft);border-radius:16px;
+    padding:15px 18px 16px;box-shadow:var(--shadow-s);
+    display:flex;flex-direction:column;gap:11px;
+  }
+  .counts{display:flex;align-items:baseline;gap:22px}
   .count{display:flex;align-items:baseline;gap:6px}
   .count .n{
-    font-family:"Shippori Mincho","Yu Mincho",serif;font-weight:700;font-size:32px;
-    line-height:1;font-variant-numeric:tabular-nums;
+    font-family:"Shippori Mincho","Yu Mincho",serif;font-weight:800;font-size:36px;
+    line-height:1;font-variant-numeric:tabular-nums;letter-spacing:.02em;
   }
   .count.conq .n{color:var(--red)}
   .count.arr .n{color:var(--pink)}
-  .count .u{font-size:12px;color:var(--ink-2);letter-spacing:.08em}
-  .bar{height:5px;border-radius:99px;background:var(--line-soft);overflow:hidden;display:flex}
-  .bar i{display:block;height:100%;transition:width .45s cubic-bezier(.2,.7,.3,1)}
+  .count .u{font-size:11.5px;color:var(--ink-2);letter-spacing:.1em}
+  .count .u b{font-weight:700;color:var(--ink-3)}
+  .bar{height:6px;border-radius:99px;background:var(--surface-2);overflow:hidden;display:flex}
+  .bar i{display:block;height:100%;transition:width .5s cubic-bezier(.2,.7,.3,1)}
   .bar .b-conq{background:var(--red)}
   .bar .b-arr{background:var(--pink)}
 
+  /* ── 地図 ── */
   .mapwrap{
     position:relative;background:var(--surface);border:1px solid var(--line-soft);
-    border-radius:16px;padding:6px;box-shadow:var(--shadow);
+    border-radius:18px;padding:6px;box-shadow:var(--shadow-m);
   }
   .geolonia-svg-map{display:block;width:100%;height:auto;touch-action:manipulation}
   .prefecture{
@@ -138,31 +117,32 @@
   }
   .prefecture.is-arrived{fill:var(--pink)}
   .prefecture.is-conquered{fill:var(--red)}
-  .prefecture.dim{opacity:.25}
-  .prefecture.active{stroke:var(--indigo);stroke-width:2.6}
+  .prefecture.dim{opacity:.2}
+  .prefecture.active{stroke:var(--blue);stroke-width:2.8}
   .boundary-line{display:none}
   @media (prefers-reduced-motion: reduce){ .prefecture,.bar i{transition:none} }
-
   .maphint{
-    position:absolute;left:16px;bottom:10px;margin:0;font-size:11px;color:var(--ink-3);
+    position:absolute;left:16px;bottom:11px;margin:0;font-size:11px;color:var(--ink-3);
     letter-spacing:.06em;pointer-events:none;
   }
 
+  /* ── エリア・県 ── */
   .picker{display:flex;flex-direction:column;gap:10px}
   .picker-head{display:flex;align-items:center;gap:12px;min-height:26px}
-  .picker-head .label{font-size:12px;letter-spacing:.16em;color:var(--ink-3)}
+  .picker-head .label{font-size:11.5px;letter-spacing:.18em;color:var(--ink-3)}
   .back{
-    border:none;background:none;padding:0;color:var(--indigo);
+    border:none;background:none;padding:0;color:var(--blue);
     font-size:13px;font-weight:700;letter-spacing:.04em;
   }
   .chips{display:flex;flex-wrap:wrap;gap:8px}
   .chip{
-    border:1px solid var(--line);background:var(--surface);color:var(--ink);
+    border:1px solid var(--line);background:var(--surface);
     font-size:14px;font-weight:500;padding:9px 15px;border-radius:999px;
+    box-shadow:var(--shadow-s);
     transition:background .15s,border-color .15s,color .15s;
   }
-  .chip:hover{border-color:var(--indigo)}
-  .chip[aria-pressed="true"]{background:var(--indigo);border-color:var(--indigo);color:var(--indigo-ink)}
+  .chip:hover{border-color:var(--blue)}
+  .chip[aria-pressed="true"]{background:var(--blue);border-color:var(--blue);color:var(--blue-ink)}
   .chip .dot{
     display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:7px;
     vertical-align:1px;background:var(--line);
@@ -171,55 +151,53 @@
   .chip .dot.conq{background:var(--red)}
 
   .credit{font-size:10.5px;color:var(--ink-3);letter-spacing:.03em;line-height:1.6;margin:0}
-  .credit a{color:inherit}
 
+  /* ── シート ── */
   .veil{
-    position:fixed;inset:0;background:rgba(20,26,32,.42);
+    position:fixed;inset:0;background:rgba(16,32,44,.34);
     opacity:0;pointer-events:none;transition:opacity .25s ease;z-index:40;
   }
   .veil.on{opacity:1;pointer-events:auto}
   .sheet{
     position:fixed;left:0;right:0;bottom:0;z-index:50;
-    background:var(--surface);border-radius:20px 20px 0 0;
-    border-top:1px solid var(--line-soft);
-    box-shadow:0 -8px 40px rgba(20,26,32,.22);
+    background:var(--surface);border-radius:22px 22px 0 0;
+    box-shadow:0 -6px 40px rgba(16,32,44,.20);
     transform:translateY(101%);transition:transform .3s cubic-bezier(.2,.8,.3,1);
     padding:14px 18px calc(24px + env(safe-area-inset-bottom));
   }
   .sheet.on{transform:translateY(0)}
   @media (prefers-reduced-motion: reduce){ .sheet,.veil{transition:none} }
-  .sheet-inner{max-width:480px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+  .sheet-inner{max-width:480px;margin:0 auto;display:flex;flex-direction:column;gap:15px}
   .grip{width:38px;height:4px;border-radius:99px;background:var(--line);margin:0 auto 2px}
   .sheet-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
   .sheet-head h2{
-    font-family:"Shippori Mincho","Yu Mincho",serif;font-weight:700;
-    font-size:25px;margin:0;letter-spacing:.06em;
+    font-family:"Shippori Mincho","Yu Mincho",serif;font-weight:800;
+    font-size:26px;margin:0;letter-spacing:.08em;
   }
-  .sheet-head .area{font-size:11.5px;letter-spacing:.14em;color:var(--ink-3)}
+  .sheet-head .area{font-size:11px;letter-spacing:.16em;color:var(--ink-3)}
   .pill{
     align-self:flex-start;font-size:12px;font-weight:700;letter-spacing:.08em;
-    padding:4px 12px;border-radius:999px;background:var(--surface-2);color:var(--ink-2);
+    padding:4px 13px;border-radius:999px;background:var(--surface-2);color:var(--ink-2);
   }
   .pill.arr{background:var(--pink-wash);color:var(--red)}
   .pill.conq{background:var(--red-wash);color:var(--red)}
 
   .marks{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   .mark{
-    border:1.5px solid var(--line);background:var(--surface);border-radius:12px;
-    padding:15px 10px 13px;display:flex;flex-direction:column;align-items:center;gap:5px;
+    border:1.5px solid var(--line);background:var(--surface);border-radius:14px;
+    padding:15px 10px 13px;display:flex;flex-direction:column;align-items:center;gap:4px;
     transition:border-color .15s,background .15s;
   }
-  .mark .ja{font-family:"Shippori Mincho","Yu Mincho",serif;font-weight:700;font-size:20px;letter-spacing:.1em}
+  .mark .ja{font-family:"Shippori Mincho","Yu Mincho",serif;font-weight:800;font-size:21px;letter-spacing:.12em}
   .mark .en{font-size:10.5px;letter-spacing:.1em;color:var(--ink-3)}
   .mark.arr[aria-pressed="true"]{background:var(--pink-wash);border-color:var(--pink)}
-  .mark.arr[aria-pressed="true"] .ja{color:var(--red)}
   .mark.conq[aria-pressed="true"]{background:var(--red-wash);border-color:var(--red)}
-  .mark.conq[aria-pressed="true"] .ja{color:var(--red)}
+  .mark[aria-pressed="true"] .ja{color:var(--red)}
 
   .dates{display:flex;flex-direction:column;gap:8px}
   .daterow{
     display:flex;align-items:center;justify-content:space-between;gap:12px;
-    padding:11px 14px;background:var(--surface-2);border-radius:10px;
+    padding:11px 14px;background:var(--surface-2);border-radius:11px;
   }
   .daterow span{font-size:13px;color:var(--ink-2);letter-spacing:.06em}
   .daterow input{
@@ -230,12 +208,15 @@
   .sheet-foot{display:flex;align-items:center;justify-content:space-between;gap:12px}
   .clear{border:none;background:none;padding:0;color:var(--ink-3);font-size:12.5px;text-decoration:underline}
   .done{
-    border:none;background:var(--indigo);color:var(--indigo-ink);
-    font-size:14px;font-weight:700;letter-spacing:.1em;padding:12px 30px;border-radius:999px;
+    border:none;background:var(--blue);color:var(--blue-ink);
+    font-size:14px;font-weight:700;letter-spacing:.12em;padding:12px 30px;border-radius:999px;
   }
 
+  /* ── 記録 ── */
   .screen{
-    position:fixed;inset:0;z-index:60;background:var(--ground);
+    position:fixed;inset:0;z-index:60;
+    background:var(--sky-low);
+    background-image:linear-gradient(180deg,var(--sky-top) 0%,var(--sky-mid) 46%,var(--sky-low) 100%);
     overflow-y:auto;-webkit-overflow-scrolling:touch;
     transform:translateY(100%);transition:transform .3s cubic-bezier(.2,.8,.3,1);
   }
@@ -244,25 +225,45 @@
   .screen-in{
     max-width:560px;margin:0 auto;
     padding:calc(20px + env(safe-area-inset-top)) 16px calc(40px + env(safe-area-inset-bottom));
-    display:flex;flex-direction:column;gap:18px;
+    display:flex;flex-direction:column;gap:16px;
   }
   .screen-top{display:flex;align-items:center;justify-content:space-between;gap:12px}
-  .screen-top h2{font-family:"Shippori Mincho","Yu Mincho",serif;font-weight:700;font-size:22px;margin:0;letter-spacing:.14em}
-  .trail{display:flex;flex-direction:column}
+  .screen-top h2{font-family:"Shippori Mincho","Yu Mincho",serif;font-weight:800;font-size:23px;margin:0;letter-spacing:.16em}
+
+  .seg{
+    display:inline-flex;align-self:flex-start;background:var(--surface-2);
+    border-radius:999px;padding:3px;gap:2px;
+  }
+  .seg button{
+    border:none;background:none;padding:7px 17px;border-radius:999px;
+    font-size:13px;font-weight:700;letter-spacing:.06em;color:var(--ink-2);
+    transition:background .15s,color .15s;
+  }
+  .seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--shadow-s)}
+  .seg button.arr[aria-pressed="true"]{color:var(--pink)}
+  .seg button.conq[aria-pressed="true"]{color:var(--red)}
+  .tcount{font-size:11.5px;letter-spacing:.1em;color:var(--ink-3);margin:0}
+
+  .trail{
+    display:flex;flex-direction:column;background:var(--surface);
+    border:1px solid var(--line-soft);border-radius:16px;padding:2px 16px;
+    box-shadow:var(--shadow-s);
+  }
   .entry{
-    display:grid;grid-template-columns:80px 1fr auto;gap:12px;align-items:center;
-    padding:13px 2px;border-bottom:1px solid var(--line-soft);
+    display:grid;grid-template-columns:78px 1fr auto;gap:12px;align-items:center;
+    padding:13px 0;border-bottom:1px solid var(--line-soft);
   }
   .entry:last-child{border-bottom:none}
   .entry .d{font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums}
-  .entry .p{font-family:"Shippori Mincho","Yu Mincho",serif;font-weight:600;font-size:17px;letter-spacing:.06em}
-  .entry .k{font-size:11.5px;font-weight:700;letter-spacing:.1em;padding:3px 10px;border-radius:999px}
+  .entry .p{font-family:"Shippori Mincho","Yu Mincho",serif;font-weight:700;font-size:17px;letter-spacing:.06em}
+  .entry .k{font-size:11px;font-weight:700;letter-spacing:.1em;padding:4px 11px;border-radius:999px;white-space:nowrap}
   .entry .k.arr{background:var(--pink-wash);color:var(--red)}
   .entry .k.conq{background:var(--red-wash);color:var(--red)}
-  .empty{padding:44px 10px;text-align:center;color:var(--ink-3);font-size:13.5px;line-height:2}
+  .entry .k.both{background:var(--red);color:#fff}
+  .empty{padding:46px 10px;text-align:center;color:var(--ink-3);font-size:13.5px;line-height:2;margin:0}
   .empty .big{
     display:block;font-family:"Shippori Mincho","Yu Mincho",serif;font-size:18px;
-    color:var(--ink-2);letter-spacing:.1em;margin-bottom:6px;
+    color:var(--ink-2);letter-spacing:.12em;margin-bottom:6px;
   }
 </style>
 </head>
@@ -272,6 +273,7 @@
   <header class="top">
     <div class="brand">
       <h1>日本制覇</h1>
+      <span class="rule"></span>
       <p>ふたりの記録</p>
     </div>
     <button class="ghost" id="openLog" type="button">記録を見る</button>
@@ -279,7 +281,7 @@
 
   <section class="tally" aria-label="進みぐあい">
     <div class="counts">
-      <div class="count conq"><span class="n" id="nConq">0</span><span class="u">制覇 / 47</span></div>
+      <div class="count conq"><span class="n" id="nConq">0</span><span class="u">制覇 <b>/ 47</b></span></div>
       <div class="count arr"><span class="n" id="nArr">0</span><span class="u">到来</span></div>
     </div>
     <div class="bar"><i class="b-conq" id="barConq" style="width:0%"></i><i class="b-arr" id="barArr" style="width:0%"></i></div>
@@ -508,7 +510,7 @@
     </g>
   </g>
 </svg>
-    <p class="maphint">地図をさわると記録できます</p>
+    <p class="maphint" id="maphint">地図をさわると、その地方に寄ります</p>
   </div>
 
   <nav class="picker" aria-label="場所を選ぶ">
@@ -554,6 +556,12 @@
       <h2 id="logTitle">これまでの軌跡</h2>
       <button class="ghost" id="closeLog" type="button">地図へ戻る</button>
     </div>
+    <div class="seg" role="group" aria-label="表示を切り替える">
+      <button type="button" data-filter="both" aria-pressed="true">両方</button>
+      <button type="button" class="arr" data-filter="arr" aria-pressed="false">到来</button>
+      <button type="button" class="conq" data-filter="conq" aria-pressed="false">制覇</button>
+    </div>
+    <p class="tcount" id="tcount"></p>
     <div class="trail" id="trail"></div>
   </div>
 </div>
@@ -613,13 +621,12 @@
     g.setAttribute("role","button");
     g.setAttribute("tabindex","0");
     g.setAttribute("aria-label", NAME[code] || ("" + code));
-    g.addEventListener("click", function(){ openSheet(code); });
+    g.addEventListener("click", function(){ tapPrefecture(code); });
     g.addEventListener("keydown", function(ev){
-      if(ev.key === "Enter" || ev.key === " "){ ev.preventDefault(); openSheet(code); }
+      if(ev.key === "Enter" || ev.key === " "){ ev.preventDefault(); tapPrefecture(code); }
     });
   });
 
-  /* 都道府県の外接矩形を、SVGのユーザー座標で求める */
   function userBox(el){
     var root = svg.getScreenCTM(), own = el.getScreenCTM();
     if(!root || !own) return null;
@@ -647,12 +654,10 @@
   var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   var vb = {x:0,y:0,w:1000,h:1000}, anim = null, ASPECT = null;
   function setVB(v){ svg.setAttribute("viewBox", v.x+" "+v.y+" "+v.w+" "+v.h); vb = v; }
-
-  /* 枠の縦横比を保ったまま box が収まる矩形。地図の高さが動かないようにする */
   function frame(box, pad){
     var w = box.X - box.x, h = box.Y - box.y;
     var cx = (box.x + box.X)/2, cy = (box.y + box.Y)/2;
-    var p = (pad === undefined ? 0.08 : pad);
+    var p = (pad === undefined ? 0.10 : pad);
     w *= (1 + p*2); h *= (1 + p*2);
     if(ASPECT){ if(w/h < ASPECT) w = h*ASPECT; else h = w/ASPECT; }
     return {x:cx - w/2, y:cy - h/2, w:w, h:h};
@@ -661,7 +666,7 @@
     if(!box) return;
     var target = frame(box, pad);
     if(reduceMotion){ setVB(target); return; }
-    var from = {x:vb.x,y:vb.y,w:vb.w,h:vb.h}, t0 = performance.now(), dur = 460;
+    var from = {x:vb.x,y:vb.y,w:vb.w,h:vb.h}, t0 = performance.now(), dur = 480;
     if(anim) cancelAnimationFrame(anim);
     (function step(now){
       var k = Math.min(1, (now - t0)/dur);
@@ -680,9 +685,7 @@
       return;
     }
     if(!ASPECT){
-      /* 日本全体の形に枠を合わせる。以後この比率は変えない */
-      var w = wholeBox.X - wholeBox.x, h = wholeBox.Y - wholeBox.y;
-      ASPECT = w / h;
+      ASPECT = (wholeBox.X - wholeBox.x) / (wholeBox.Y - wholeBox.y);
       setVB(frame(wholeBox, 0.04));
       return;
     }
@@ -719,6 +722,19 @@
   var chips = document.getElementById("chips");
   var pickerLabel = document.getElementById("pickerLabel");
   var backBtn = document.getElementById("backBtn");
+  var maphint = document.getElementById("maphint");
+
+  /* ★ 二段構え：まず地方に寄る。寄ったあとの一押しで県を開く */
+  function tapPrefecture(code){
+    if(AREA_OF[code] !== currentArea){ selectArea(AREA_OF[code]); return; }
+    openSheet(code);
+  }
+
+  function setHint(){
+    maphint.textContent = currentArea
+      ? "もう一度さわると記録できます"
+      : "地図をさわると、その地方に寄ります";
+  }
 
   function renderChips(){
     chips.textContent = "";
@@ -747,6 +763,7 @@
         chips.appendChild(b);
       });
     }
+    setHint();
   }
   function selectArea(key){
     currentArea = key; currentCode = null;
@@ -767,9 +784,7 @@
     var areaChanged = (AREA_OF[code] !== currentArea);
     currentCode = code;
     currentArea = AREA_OF[code];
-    renderChips();
-    fillSheet();
-    paint();
+    renderChips(); fillSheet(); paint();
     if(areaChanged) zoomTo(unionBox(codesIn(currentArea)));
     sheet.hidden = false; veil.classList.add("on");
     requestAnimationFrame(function(){ sheet.classList.add("on"); });
@@ -827,21 +842,55 @@
     delete data[currentCode]; persist(); fillSheet(); paint(); renderChips(); renderTrail();
   });
 
-  var logScreen = document.getElementById("logScreen"), trail = document.getElementById("trail");
-  function renderTrail(){
+  /* ── 記録：両方 / 到来 / 制覇 ── */
+  var logScreen = document.getElementById("logScreen");
+  var trail = document.getElementById("trail");
+  var tcount = document.getElementById("tcount");
+  var filter = "both";
+
+  Array.prototype.forEach.call(document.querySelectorAll(".seg button"), function(b){
+    b.addEventListener("click", function(){
+      filter = b.getAttribute("data-filter");
+      Array.prototype.forEach.call(document.querySelectorAll(".seg button"), function(o){
+        o.setAttribute("aria-pressed", o === b ? "true" : "false");
+      });
+      renderTrail();
+    });
+  });
+
+  function trailItems(){
     var items = [];
     Object.keys(data).forEach(function(code){
-      var r = data[code];
-      if(r.arrived) items.push({code:+code, kind:"arr", date:r.arrived});
-      if(r.conquered) items.push({code:+code, kind:"conq", date:r.conquered});
+      var r = data[code], c = +code;
+      var wantArr = (filter === "both" || filter === "arr");
+      var wantConq = (filter === "both" || filter === "conq");
+      /* 同じ日に到来して制覇した県は、両方表示のとき1行にまとめる */
+      if(filter === "both" && r.arrived && r.conquered && r.arrived === r.conquered){
+        items.push({code:c, kind:"both", date:r.conquered});
+        return;
+      }
+      if(wantArr && r.arrived) items.push({code:c, kind:"arr", date:r.arrived});
+      if(wantConq && r.conquered) items.push({code:c, kind:"conq", date:r.conquered});
     });
     items.sort(function(a,b){ return a.date === b.date ? a.code - b.code : (a.date < b.date ? -1 : 1); });
+    return items;
+  }
+  var LABEL = {arr:"到来", conq:"制覇", both:"到来・制覇"};
+  var EMPTY = {
+    both:["まだ一歩目です","地図から県を選んで、行った日を残していきましょう。"],
+    arr:["到来はまだありません","行ったことのある県を「到来」にすると、ここに並びます。"],
+    conq:["制覇はまだありません","やりきった県を「制覇」にすると、ここに並びます。"]
+  };
+
+  function renderTrail(){
+    var items = trailItems();
     trail.textContent = "";
+    tcount.textContent = items.length ? (items.length + " 件") : "";
     if(!items.length){
       var e = document.createElement("p"); e.className = "empty";
-      var big = document.createElement("span"); big.className = "big"; big.textContent = "まだ一歩目です";
+      var big = document.createElement("span"); big.className = "big"; big.textContent = EMPTY[filter][0];
       e.appendChild(big);
-      e.appendChild(document.createTextNode("地図から県を選んで、行った日を残していきましょう。"));
+      e.appendChild(document.createTextNode(EMPTY[filter][1]));
       trail.appendChild(e);
       return;
     }
@@ -849,8 +898,7 @@
       var row = document.createElement("div"); row.className = "entry";
       var d = document.createElement("span"); d.className = "d"; d.textContent = jpDate(it.date);
       var p = document.createElement("span"); p.className = "p"; p.textContent = NAME[it.code];
-      var k = document.createElement("span"); k.className = "k " + it.kind;
-      k.textContent = it.kind === "conq" ? "制覇" : "到来";
+      var k = document.createElement("span"); k.className = "k " + it.kind; k.textContent = LABEL[it.kind];
       row.appendChild(d); row.appendChild(p); row.appendChild(k);
       trail.appendChild(row);
     });
