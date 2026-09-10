@@ -863,8 +863,13 @@
     return PREFS.filter(function(p){ return p[2] === area; }).map(function(p){ return p[0]; });
   }
 
-  var APP_VERSION = "2.4";
+  var APP_VERSION = "2.5";
   var CHANGELOG = [
+    ["2.5", "2026-09-11", [
+      "制覇済みの県で「到来」を押しても、確認なしに制覇が消えることはなくなりました",
+      "取り消す操作はすべて確認を出します。何が消えて何が残るかも表示します",
+      "日付は日付欄で直せます。ボタンを押し直す必要はありません"
+    ]],
     ["2.4", "2026-09-11", [
       "写真の表示位置を指で決められるようにしました（写真を開いて「表示位置」）",
       "一覧の四角に出したいところを、枠の中で動かして合わせられます",
@@ -1233,6 +1238,11 @@
     }else{
       if(r.arrived) elDates.appendChild(dateRow("到来した日", "arrived", r.arrived));
       if(r.conquered) elDates.appendChild(dateRow("制覇した日", "conquered", r.conquered));
+      if(r.arrived && r.conquered){
+        var hint = document.createElement("p"); hint.className = "dnote";
+        hint.textContent = "日付はここで直せます。上のボタンを押し直す必要はありません。";
+        elDates.appendChild(hint);
+      }
     }
   }
   function sameDayNote(){
@@ -1275,16 +1285,59 @@
     persist(); fillSheet(); paint(); renderChips(); renderTrail(); renderPhotos(); pushCloud();
   }
 
+  /* 消えるものを並べてから聞く。改行はここから取る（エスケープで壊さないため） */
+  function ask(lines){ return confirm(lines.join(String.fromCharCode(10))); }
+
+  /* 制覇を外して到来だけに戻す。日付も写真も、残るものは残すと明言する */
+  function askDropConquered(code, r){
+    var lines = [NAME[code] + "の「制覇」を取り消します。",
+                 "　制覇　" + jpDate(r.conquered),
+                 ""];
+    lines.push(r.arrived
+      ? "到来の記録（" + jpDate(r.arrived) + "）は残ります。"
+      : "到来の記録は残ります。");
+    lines.push("制覇の写真も消さずに残します。");
+    lines.push("");
+    lines.push("よろしいですか。");
+    return ask(lines);
+  }
+
   mArr.addEventListener("click", function(){
     var code = currentCode, r = data[code] || (data[code] = {});
-    if(r.arrived && !r.conquered) clearPref(code);
-    else { if(!r.arrived) r.arrived = today(); delete r.conquered; }
+    /* 制覇済みなら、押した意味は「制覇を取り消す」。確認してから */
+    if(r.conquered){
+      if(!askDropConquered(code, r)) return;
+      delete r.conquered;
+      afterEdit(code); return;
+    }
+    /* 到来だけの県で押すと、この県の記録がなくなる */
+    if(r.arrived){
+      var pn = photoCountOf(code);
+      var lines = [NAME[code] + "の「到来」を取り消します。",
+                   "　到来　" + jpDate(r.arrived)];
+      if(pn) lines.push("　写真　" + pn + "枚も一緒に消えます");
+      lines.push("");
+      lines.push("この県の記録がなくなります。元に戻せません。");
+      lines.push("よろしいですか。");
+      if(!ask(lines)) return;
+      dropPhotosOf(code); clearPref(code);
+      afterEdit(code); return;
+    }
+    /* ここから先は記録するだけ。確認は出さない */
+    r.arrived = today();
     afterEdit(code);
   });
+
   mConq.addEventListener("click", function(){
     var code = currentCode, r = data[code] || (data[code] = {});
-    if(r.conquered){ delete r.conquered; if(!r.arrived) clearPref(code); }
-    else { if(!r.arrived) r.arrived = today(); r.conquered = today(); }
+    if(r.conquered){
+      if(!askDropConquered(code, r)) return;
+      delete r.conquered;
+      afterEdit(code); return;
+    }
+    /* 先に到来を記録してある県は、その日付をそのまま残す */
+    if(!r.arrived) r.arrived = today();
+    r.conquered = today();
     afterEdit(code);
   });
   document.getElementById("clearBtn").addEventListener("click", function(){
