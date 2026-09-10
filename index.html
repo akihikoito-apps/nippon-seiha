@@ -79,8 +79,24 @@
     overflow-y:auto;   /* 万一入りきらないときだけ動く */
   }
 
+  /* ── 更新のお知らせ ── */
+  .newsbar{
+    display:flex;align-items:center;gap:10px;flex:none;
+    background:var(--blue-wash);border:1px solid #B6D2E4;border-radius:12px;
+    padding:9px 12px 9px 14px;font-size:12.5px;color:var(--blue);letter-spacing:.03em;
+  }
+  .newsbar .newslink{
+    border:none;background:none;padding:0;margin-left:auto;
+    color:var(--blue);font-size:12.5px;font-weight:700;text-decoration:underline;white-space:nowrap;
+  }
+  .newsbar .newsclose{
+    border:none;background:none;padding:0 2px;color:var(--blue);
+    font-size:17px;line-height:1;opacity:.65;
+  }
+
   /* ── 見出し ── */
-  .top{display:flex;align-items:flex-end;justify-content:space-between;gap:14px}
+  .top{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;flex-wrap:wrap;flex:none}
+  .acts{display:flex;gap:7px;margin-left:auto}
   .brand h1{
     font-family:"Shippori Mincho","Yu Mincho",serif;
     font-weight:800;font-size:26px;letter-spacing:.16em;margin:0;line-height:1.15;
@@ -91,7 +107,7 @@
   .brand p{margin:0;font-size:11.5px;letter-spacing:.2em;color:var(--ink-3)}
   .ghost{
     border:1px solid var(--line);background:var(--surface);color:var(--ink-2);
-    font-size:13px;font-weight:700;padding:9px 16px;border-radius:999px;
+    font-size:12.5px;font-weight:700;padding:8px 14px;border-radius:999px;
     box-shadow:var(--shadow-s);white-space:nowrap;
     transition:border-color .15s,color .15s;
   }
@@ -287,6 +303,23 @@
   .entry .k.arr{background:var(--pink-wash);color:var(--pink-ink)}
   .entry .k.conq{background:var(--red-wash);color:var(--red)}
   .entry .k.both{background:var(--red);color:#fff}
+  /* ── 更新履歴 ── */
+  .rel{padding:15px 0;border-bottom:1px solid var(--line-soft)}
+  .rel:last-child{border-bottom:none}
+  .rel-head{display:flex;align-items:baseline;gap:10px;margin-bottom:7px}
+  .rel-v{
+    font-family:"Shippori Mincho","Yu Mincho",serif;font-weight:800;font-size:17px;
+    letter-spacing:.06em;font-variant-numeric:tabular-nums;
+  }
+  .rel-d{font-size:11.5px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+  .rel-now{
+    font-size:10.5px;font-weight:700;letter-spacing:.08em;padding:2px 8px;border-radius:999px;
+    background:var(--blue-wash);color:var(--blue);
+  }
+  .rel ul{margin:0;padding-left:1.15em;display:flex;flex-direction:column;gap:4px}
+  .rel li{font-size:13.5px;line-height:1.75;color:var(--ink-2)}
+  .rel li::marker{color:var(--ink-3)}
+
   .empty{padding:46px 10px;text-align:center;color:var(--ink-3);font-size:13.5px;line-height:2;margin:0}
   .empty .big{
     display:block;font-family:"Shippori Mincho","Yu Mincho",serif;font-size:18px;
@@ -326,12 +359,21 @@
 <body>
 
 <div class="app">
+  <div class="newsbar" id="newsBar" hidden>
+    <span id="newsText">新しくなりました</span>
+    <button class="newslink" id="newsOpen" type="button">更新履歴を見る</button>
+    <button class="newsclose" id="newsClose" type="button" aria-label="閉じる">×</button>
+  </div>
+
   <header class="top">
     <div class="brand">
       <h1>日本制覇</h1>
       <span class="rule"></span>
     </div>
-    <button class="ghost" id="openLog" type="button">記録を見る</button>
+    <div class="acts">
+      <button class="ghost" id="openLog" type="button">日本制覇の記録</button>
+      <button class="ghost" id="openVer" type="button">更新履歴</button>
+    </div>
   </header>
 
   <section class="tally" aria-label="進みぐあい">
@@ -645,6 +687,16 @@
   </div>
 </div>
 
+<div class="screen" id="verScreen" role="dialog" aria-modal="true" aria-labelledby="verTitle" hidden>
+  <div class="screen-in">
+    <div class="screen-top">
+      <h2 id="verTitle">更新の記録</h2>
+      <button class="ghost" id="closeVer" type="button">地図へ戻る</button>
+    </div>
+    <div class="trail" id="verList"></div>
+  </div>
+</div>
+
 <script>
 (function(){
   "use strict";
@@ -675,6 +727,58 @@
   function codesIn(area){
     return PREFS.filter(function(p){ return p[2] === area; }).map(function(p){ return p[0]; });
   }
+
+  var APP_VERSION = "2.0";
+  var CHANGELOG = [
+    ["2.0", "2026-09-10", [
+      "更新があったときに、開いたらお知らせが出るようにしました",
+      "この「更新履歴」を追加しました",
+      "「記録を見る」を「日本制覇の記録」に改称"
+    ]],
+    ["1.9", "2026-09-10", [
+      "一気に制覇したときは、日付を1つだけ聞くようにしました",
+      "「初めて行った日は別」から、到来日だけをさかのぼって直せます",
+      "先に到来を記録した県は、あとで制覇しても到来日が上書きされません"
+    ]],
+    ["1.8", "2026-09-10", [
+      "ホーム画面のアイコンを、兜をかぶった猫にしました",
+      "背景の日本地図の一部を、制覇と到来の色で塗ってあります"
+    ]],
+    ["1.7", "2026-09-10", [
+      "画面の高さちょうどに収まるようにしました（縦スクロールをなくしました）",
+      "端末の高さや画面の回転に合わせて、地図の大きさを測り直します",
+      "「ふたりで共有中」を「共有中」に"
+    ]],
+    ["1.6", "2026-09-10", [
+      "合言葉を入れると、記録を共有できるようになりました",
+      "県ごとに新しいほうを採るので、同時に別の県を塗っても消し合いません",
+      "合言葉はこの端末の中だけに残ります"
+    ]],
+    ["1.5", "2026-09-10", [
+      "九州に寄れなかったのを直しました（鹿児島の南西諸島まで囲んでいたため）",
+      "寄せる範囲の計算から、小さな離島を外しました",
+      "沖縄を独立したエリアにし、北海道・沖縄は寄せると同時に開くようにしました"
+    ]],
+    ["1.4", "2026-09-10", [
+      "海（陸のないところ）をさわると、ひとつ前の広さに戻ります",
+      "到来の色をもっと薄くして、制覇との差を広げました"
+    ]],
+    ["1.3", "2026-09-10", [
+      "海に色を敷いて、白い日本が浮かぶようにしました",
+      "見出し下の副題を削除"
+    ]],
+    ["1.2", "2026-09-10", [
+      "地図のタップを二段構えに（まず地方に寄り、もう一度で県を開く）",
+      "記録を「両方／到来／制覇」で切り替えられるようにしました",
+      "暗いテーマをやめ、明るい配色にしました"
+    ]],
+    ["1.1", "2026-09-10", [
+      "iPhoneで正しい大きさに表示されるようにしました"
+    ]],
+    ["1.0", "2026-09-10", [
+      "公開しました。地図・到来／制覇・日付・軌跡"
+    ]]
+  ];
 
   var KEY = "nippon-seiha.v1";
   var data = {};
@@ -954,6 +1058,7 @@
     if(ev.key !== "Escape") return;
     if(!sheet.hidden && sheet.classList.contains("on")) closeSheet();
     else if(logScreen.classList.contains("on")) closeLog();
+    else if(verScreen.classList.contains("on")) closeVer();
   });
 
   function fillSheet(){
@@ -1103,6 +1208,57 @@
   }
   document.getElementById("openLog").addEventListener("click", openLog);
   document.getElementById("closeLog").addEventListener("click", closeLog);
+
+  /* ── 更新履歴 ── */
+  var verScreen = document.getElementById("verScreen");
+  var verList = document.getElementById("verList");
+  function renderVer(){
+    verList.textContent = "";
+    CHANGELOG.forEach(function(rel, ix){
+      var box = document.createElement("div"); box.className = "rel";
+      var head = document.createElement("div"); head.className = "rel-head";
+      var v = document.createElement("span"); v.className = "rel-v"; v.textContent = "v" + rel[0];
+      var d = document.createElement("span"); d.className = "rel-d"; d.textContent = jpDate(rel[1]);
+      head.appendChild(v); head.appendChild(d);
+      if(ix === 0){
+        var now = document.createElement("span"); now.className = "rel-now"; now.textContent = "いま使っている版";
+        head.appendChild(now);
+      }
+      var ul = document.createElement("ul");
+      rel[2].forEach(function(t){ var li = document.createElement("li"); li.textContent = t; ul.appendChild(li); });
+      box.appendChild(head); box.appendChild(ul);
+      verList.appendChild(box);
+    });
+  }
+  function openVer(){
+    renderVer();
+    verScreen.hidden = false;
+    requestAnimationFrame(function(){ verScreen.classList.add("on"); });
+  }
+  function closeVer(){
+    verScreen.classList.remove("on");
+    setTimeout(function(){ if(!verScreen.classList.contains("on")) verScreen.hidden = true; }, 320);
+  }
+  document.getElementById("openVer").addEventListener("click", openVer);
+  document.getElementById("closeVer").addEventListener("click", closeVer);
+
+  /* 前に開いたときと版が違えば、お知らせを出す */
+  var VERKEY = "nippon-seiha.ver";
+  var newsBar = document.getElementById("newsBar");
+  var seenVer = null;
+  try{ seenVer = localStorage.getItem(VERKEY); }catch(e){}
+  /* すでに記録がある人は「前から使っている人」。版の記録がなくても更新として知らせる。
+     まっさらな初回の人には出さない */
+  var isUpgrade = seenVer ? (seenVer !== APP_VERSION) : (Object.keys(data).length > 0);
+  if(isUpgrade){
+    document.getElementById("newsText").textContent = "新しくなりました（v" + APP_VERSION + "）";
+    newsBar.hidden = false;
+  }
+  try{ localStorage.setItem(VERKEY, APP_VERSION); }catch(e){}
+  document.getElementById("newsOpen").addEventListener("click", function(){
+    newsBar.hidden = true; openVer();
+  });
+  document.getElementById("newsClose").addEventListener("click", function(){ newsBar.hidden = true; });
 
   /* ── ふたりで共有する ─────────────────────────────
      同じ合言葉から同じ保存先の名前を作る。合言葉そのものは送らず、
