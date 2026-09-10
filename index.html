@@ -793,8 +793,12 @@
     return PREFS.filter(function(p){ return p[2] === area; }).map(function(p){ return p[0]; });
   }
 
-  var APP_VERSION = "2.1";
+  var APP_VERSION = "2.2";
   var CHANGELOG = [
+    ["2.2", "2026-09-11", [
+      "県の記録を消すとき、確認を出すようにしました",
+      "確認の画面には、消える日付もそのまま並べています"
+    ]],
     ["2.1", "2026-09-10", [
       "Face IDで開くようにできます（画面の下から設定）",
       "Face IDが使えないときのために、解除の合言葉も決めてもらいます",
@@ -1203,7 +1207,17 @@
     afterEdit(code);
   });
   document.getElementById("clearBtn").addEventListener("click", function(){
-    clearPref(currentCode); afterEdit(currentCode);
+    /* 日付まで入れたものが不意に消えないよう、何が消えるかを見せてから聞く */
+    var code = currentCode, r = data[code] || {};
+    var lines = [NAME[code] + "の記録を消します。"];
+    if(r.arrived)   lines.push("　到来　" + jpDate(r.arrived));
+    if(r.conquered) lines.push("　制覇　" + jpDate(r.conquered));
+    if(!r.arrived && !r.conquered) lines.push("（まだ何も記録されていません）");
+    lines.push("");
+    lines.push("消すと元に戻せません。よろしいですか。");
+    if(!confirm(lines.join("
+"))) return;
+    clearPref(code); afterEdit(code);
   });
 
   /* ── 記録：両方 / 到来 / 制覇 ── */
