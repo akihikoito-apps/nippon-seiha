@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>日本制覇</title>
-<meta name="description" content="ふたりで47都道府県をめぐる記録帳。行った県は薄紅、やりきった県は朱に。">
+<meta name="description" content="47都道府県をめぐる記録帳。行った県は薄紅、やりきった県は朱に。">
 <meta name="theme-color" content="#F4F8FA">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="日本制覇">
@@ -48,7 +48,9 @@
   html{-webkit-text-size-adjust:100%}
   body{
     margin:0;
-    min-height:100vh;
+    height:100vh;
+    height:100dvh;   /* iPhoneの上下バーの伸び縮みに追従する */
+    overflow:hidden;
     background:var(--sky-low);
     background-image:linear-gradient(180deg,var(--sky-top) 0%,var(--sky-mid) 46%,var(--sky-low) 100%);
     background-attachment:fixed;
@@ -64,20 +66,24 @@
   button{font-family:inherit;cursor:pointer;color:inherit}
   :focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:4px}
 
+  /* 縦は画面の高さちょうど。地図が余った分を受け取って伸び縮みする */
   .app{
     max-width:560px;margin:0 auto;
-    padding:22px 14px calc(34px + env(safe-area-inset-bottom));
-    display:flex;flex-direction:column;gap:16px;
+    height:100vh;
+    height:100dvh;
+    padding:14px 14px calc(10px + env(safe-area-inset-bottom));
+    display:flex;flex-direction:column;gap:11px;
+    overflow-y:auto;   /* 万一入りきらないときだけ動く */
   }
 
   /* ── 見出し ── */
   .top{display:flex;align-items:flex-end;justify-content:space-between;gap:14px}
   .brand h1{
     font-family:"Shippori Mincho","Yu Mincho",serif;
-    font-weight:800;font-size:29px;letter-spacing:.16em;margin:0;line-height:1.15;
+    font-weight:800;font-size:26px;letter-spacing:.16em;margin:0;line-height:1.15;
   }
   .brand .rule{
-    display:block;width:38px;height:3px;border-radius:2px;background:var(--red);margin:9px 0 7px;
+    display:block;width:34px;height:3px;border-radius:2px;background:var(--red);margin:7px 0 0;
   }
   .brand p{margin:0;font-size:11.5px;letter-spacing:.2em;color:var(--ink-3)}
   .ghost{
@@ -91,13 +97,13 @@
   /* ── 数え ── */
   .tally{
     background:var(--surface);border:1px solid var(--line-soft);border-radius:16px;
-    padding:15px 18px 16px;box-shadow:var(--shadow-s);
-    display:flex;flex-direction:column;gap:11px;
+    padding:11px 16px 12px;box-shadow:var(--shadow-s);
+    display:flex;flex-direction:column;gap:8px;
   }
   .counts{display:flex;align-items:baseline;gap:22px}
   .count{display:flex;align-items:baseline;gap:6px}
   .count .n{
-    font-family:"Shippori Mincho","Yu Mincho",serif;font-weight:800;font-size:36px;
+    font-family:"Shippori Mincho","Yu Mincho",serif;font-weight:800;font-size:31px;
     line-height:1;font-variant-numeric:tabular-nums;letter-spacing:.02em;
   }
   .count.conq .n{color:var(--red)}
@@ -117,8 +123,9 @@
     background-image:linear-gradient(168deg,var(--sea-1) 0%,var(--sea-2) 100%);
     border:1px solid #A6C9DE;
     border-radius:18px;overflow:hidden;box-shadow:var(--shadow-m);
+    flex:1 1 auto;min-height:150px;   /* 余った高さをここが受け取る */
   }
-  .geolonia-svg-map{display:block;width:100%;height:auto;touch-action:manipulation}
+  .geolonia-svg-map{display:block;width:100%;height:100%;touch-action:manipulation}
   .prefecture{
     fill:var(--land);stroke:var(--land-line);stroke-width:1;
     cursor:pointer;transition:fill .25s ease, opacity .3s ease;
@@ -136,8 +143,8 @@
   }
 
   /* ── エリア・県 ── */
-  .picker{display:flex;flex-direction:column;gap:10px}
-  .picker-head{display:flex;align-items:center;gap:12px;min-height:26px}
+  .picker{display:flex;flex-direction:column;gap:8px;flex:none}
+  .picker-head{display:flex;align-items:center;gap:12px;min-height:20px}
   .picker-head .label{font-size:11.5px;letter-spacing:.18em;color:var(--ink-3)}
   .back{
     border:none;background:none;padding:0;color:var(--blue);
@@ -146,7 +153,7 @@
   .chips{display:flex;flex-wrap:wrap;gap:8px}
   .chip{
     border:1px solid var(--line);background:var(--surface);
-    font-size:14px;font-weight:500;padding:9px 15px;border-radius:999px;
+    font-size:13.5px;font-weight:500;padding:8px 14px;border-radius:999px;
     box-shadow:var(--shadow-s);
     transition:background .15s,border-color .15s,color .15s;
   }
@@ -159,7 +166,7 @@
   .chip .dot.arr{background:var(--pink-mid)}
   .chip .dot.conq{background:var(--red)}
 
-  .credit{font-size:10.5px;color:var(--ink-3);letter-spacing:.03em;line-height:1.6;margin:0}
+  .credit{font-size:9.5px;color:var(--ink-3);letter-spacing:.02em;line-height:1.45;margin:0;flex:none}
 
   /* ── シート ── */
   .veil{
@@ -278,7 +285,7 @@
 
   /* ── 共有の状態 ── */
   .sync{
-    display:flex;align-items:center;gap:9px;
+    display:flex;align-items:center;gap:9px;flex:none;
     font-size:12px;color:var(--ink-2);letter-spacing:.04em;
   }
   .sync .sdot{
@@ -616,7 +623,7 @@
     <div class="grip"></div>
     <h2 class="pass-title" id="passTitle">合言葉を入れる</h2>
     <p class="pass-note">
-      おふたりで決めた<b>同じ合言葉</b>を、両方の端末で入れてください。同じ合言葉どうしが、ひとつの記録につながります。<br>
+      <b>同じ合言葉</b>を入れた端末どうしが、ひとつの記録につながります。相手にも同じ言葉を伝えてください。<br>
       合言葉はこの端末の中だけに残ります。どこにも公開されません。
     </p>
     <input class="pass-input" id="passInput" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="ふたりで決めた言葉">
@@ -782,20 +789,40 @@
     })(t0);
   }
 
-  var wholeBox = null;
+  /* 枠の縦横比は「いま画面に出ている地図の箱」から測る。
+     端末の高さが変わっても、はみ出したり余白が出たりしない */
+  function measureAspect(){
+    var r = svg.getBoundingClientRect();
+    if(r.width > 4 && r.height > 4){ ASPECT = r.width / r.height; return true; }
+    return false;
+  }
+  function areaPad(area){ return codesIn(area).length === 1 ? 0.34 : 0.10; }
+  function areaBox(area){ return unionCore(codesIn(area)) || unionBox(codesIn(area)); }
+
+  var wholeBox = null, started = false;
   function showWhole(tries){
     if(!wholeBox) wholeBox = unionBox(PREFS.map(function(p){ return p[0]; }));
-    if(!wholeBox){
+    if(!wholeBox || !measureAspect()){
       if((tries||0) < 25) setTimeout(function(){ showWhole((tries||0)+1); }, 60);
       return;
     }
-    if(!ASPECT){
-      ASPECT = (wholeBox.X - wholeBox.x) / (wholeBox.Y - wholeBox.y);
-      setVB(frame(wholeBox, 0.04));
-      return;
-    }
+    if(!started){ started = true; setVB(frame(wholeBox, 0.04)); return; }
     zoomTo(wholeBox, 0.04);
   }
+
+  /* 画面の大きさが変わったら、比率を測り直していまの見え方に合わせ直す */
+  var reTimer = null;
+  function relayout(){
+    if(!wholeBox || !measureAspect()) return;
+    if(anim) cancelAnimationFrame(anim);
+    if(currentArea) setVB(frame(areaBox(currentArea), areaPad(currentArea)));
+    else setVB(frame(wholeBox, 0.04));
+  }
+  window.addEventListener("resize", function(){
+    if(reTimer) clearTimeout(reTimer);
+    reTimer = setTimeout(relayout, 120);
+  });
+  window.addEventListener("orientationchange", function(){ setTimeout(relayout, 280); });
 
   function stateOf(code){
     var r = data[code];
@@ -875,7 +902,7 @@
     renderChips(); paint();
     var codes = codesIn(key);
     /* 北海道・沖縄のように県が1つだけの地方は、広めに寄せてそのまま開く */
-    zoomTo(unionCore(codes) || unionBox(codes), codes.length === 1 ? 0.34 : undefined);
+    zoomTo(areaBox(key), areaPad(key));
     if(codes.length === 1) openSheet(codes[0]);
   }
   function backToWhole(){
@@ -901,7 +928,7 @@
     currentCode = code;
     currentArea = AREA_OF[code];
     renderChips(); fillSheet(); paint();
-    if(areaChanged) zoomTo(unionCore(codesIn(currentArea)) || unionBox(codesIn(currentArea)));
+    if(areaChanged) zoomTo(areaBox(currentArea), areaPad(currentArea));
     sheet.hidden = false; veil.classList.add("on");
     requestAnimationFrame(function(){ sheet.classList.add("on"); });
   }
@@ -1099,7 +1126,7 @@
       try{ localStorage.setItem(PASSKEY, pass); }catch(e){}
       if(unwatch) unwatch();
       unwatch = window.__cloud.watch(id, function(remote){
-        setSync("on", "ふたりで共有中");
+        setSync("on", "共有中");
         mergeRemote(remote);
       }, function(){
         setSync("err", "共有につながりません");
@@ -1136,7 +1163,7 @@
   document.getElementById("passOk").addEventListener("click", function(){
     var v = passInput.value;
     if(String(v).replace(/\s+/g,"").length < 3){
-      passErr.textContent = "3文字以上にしてください。おふたりで同じ言葉を使います。";
+      passErr.textContent = "3文字以上にしてください。相手と同じ言葉を使います。";
       passErr.hidden = false; return;
     }
     closePass(); startSync(v);
