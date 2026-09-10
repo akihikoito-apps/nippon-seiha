@@ -593,11 +593,11 @@
     [34,"広島県","chugoku"],[35,"山口県","chugoku"],
     [36,"徳島県","shikoku"],[37,"香川県","shikoku"],[38,"愛媛県","shikoku"],[39,"高知県","shikoku"],
     [40,"福岡県","kyushu"],[41,"佐賀県","kyushu"],[42,"長崎県","kyushu"],[43,"熊本県","kyushu"],
-    [44,"大分県","kyushu"],[45,"宮崎県","kyushu"],[46,"鹿児島県","kyushu"],[47,"沖縄県","kyushu"]
+    [44,"大分県","kyushu"],[45,"宮崎県","kyushu"],[46,"鹿児島県","kyushu"],[47,"沖縄県","okinawa"]
   ];
   var AREAS = [
     ["hokkaido","北海道"],["tohoku","東北"],["kanto","関東"],["chubu","中部"],
-    ["kinki","近畿"],["chugoku","中国"],["shikoku","四国"],["kyushu","九州・沖縄"]
+    ["kinki","近畿"],["chugoku","中国"],["shikoku","四国"],["kyushu","九州"],["okinawa","沖縄"]
   ];
   var NAME = {}, AREA_OF = {}, AREA_LABEL = {};
   PREFS.forEach(function(p){ NAME[p[0]] = p[1]; AREA_OF[p[0]] = p[2]; });
@@ -777,7 +777,10 @@
   function selectArea(key){
     currentArea = key; currentCode = null;
     renderChips(); paint();
-    zoomTo(unionBox(codesIn(key)));
+    var codes = codesIn(key);
+    /* 北海道・沖縄のように県が1つだけの地方は、広めに寄せてそのまま開く */
+    zoomTo(unionBox(codes), codes.length === 1 ? 0.34 : undefined);
+    if(codes.length === 1) openSheet(codes[0]);
   }
   function backToWhole(){
     currentArea = null; currentCode = null;
