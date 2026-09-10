@@ -660,8 +660,45 @@
     return u;
   }
 
+  /* ★ 寄せるときは離島を数に入れない。
+     鹿児島は奄美群島まで含むと囲みが地図の高さいっぱい（993）になり、
+     九州に寄せても縮尺が変わらなかった。いちばん大きい島の面積を基準に、
+     その25%に満たない小さな島は「寄せる範囲」から外す。塗りも操作も従来どおり。 */
+  var coreCache = {};
+  function coreBox(code){
+    if(coreCache[code]) return coreCache[code];
+    var g = groups[code]; if(!g) return null;
+    var els = g.querySelectorAll("polygon,path,polyline,rect,circle,ellipse");
+    var boxes = [], maxA = 0;
+    for(var i=0;i<els.length;i++){
+      var b = userBox(els[i]); if(!b) continue;
+      b.a = Math.max(1, b.X-b.x) * Math.max(1, b.Y-b.y);
+      if(b.a > maxA) maxA = b.a;
+      boxes.push(b);
+    }
+    if(!boxes.length) return null;
+    var u = null;
+    boxes.forEach(function(b){
+      if(b.a < maxA * 0.25) return;
+      u = u ? {x:Math.min(u.x,b.x), y:Math.min(u.y,b.y), X:Math.max(u.X,b.X), Y:Math.max(u.Y,b.Y)}
+            : {x:b.x, y:b.y, X:b.X, Y:b.Y};
+    });
+    if(u) coreCache[code] = u;
+    return u;
+  }
+  function unionCore(codes){
+    var u = null;
+    codes.forEach(function(c){
+      var b = coreBox(c); if(!b) return;
+      u = u ? {x:Math.min(u.x,b.x), y:Math.min(u.y,b.y), X:Math.max(u.X,b.X), Y:Math.max(u.Y,b.Y)}
+            : {x:b.x, y:b.y, X:b.X, Y:b.Y};
+    });
+    return u;
+  }
+
   var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   var vb = {x:0,y:0,w:1000,h:1000}, anim = null, ASPECT = null;
+  var MIN_FRAME = 140;  /* これ以上は寄らない。沖縄本島だけで13倍まで寄ってしまうため */
   function setVB(v){ svg.setAttribute("viewBox", v.x+" "+v.y+" "+v.w+" "+v.h); vb = v; }
   function frame(box, pad){
     var w = box.X - box.x, h = box.Y - box.y;
@@ -669,6 +706,7 @@
     var p = (pad === undefined ? 0.10 : pad);
     w *= (1 + p*2); h *= (1 + p*2);
     if(ASPECT){ if(w/h < ASPECT) w = h*ASPECT; else h = w/ASPECT; }
+    if(w < MIN_FRAME){ var k = MIN_FRAME/w; w *= k; h *= k; }  /* 寄せすぎ防止 */
     return {x:cx - w/2, y:cy - h/2, w:w, h:h};
   }
   function zoomTo(box, pad){
@@ -779,7 +817,7 @@
     renderChips(); paint();
     var codes = codesIn(key);
     /* 北海道・沖縄のように県が1つだけの地方は、広めに寄せてそのまま開く */
-    zoomTo(unionBox(codes), codes.length === 1 ? 0.34 : undefined);
+    zoomTo(unionCore(codes) || unionBox(codes), codes.length === 1 ? 0.34 : undefined);
     if(codes.length === 1) openSheet(codes[0]);
   }
   function backToWhole(){
@@ -805,7 +843,7 @@
     currentCode = code;
     currentArea = AREA_OF[code];
     renderChips(); fillSheet(); paint();
-    if(areaChanged) zoomTo(unionBox(codesIn(currentArea)));
+    if(areaChanged) zoomTo(unionCore(codesIn(currentArea)) || unionBox(codesIn(currentArea)));
     sheet.hidden = false; veil.classList.add("on");
     requestAnimationFrame(function(){ sheet.classList.add("on"); });
   }
