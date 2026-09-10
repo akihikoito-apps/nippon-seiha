@@ -289,6 +289,21 @@
   .pcell.add:hover{border-color:var(--blue);color:var(--blue)}
   .pcell.busy{color:var(--ink-3);font-size:11px;letter-spacing:.08em}
 
+  .pcrop{
+    position:fixed;inset:0;z-index:95;background:rgba(10,20,29,.97);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
+    padding:calc(20px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));
+  }
+  .pcrop .frame{
+    width:min(78vw,320px);aspect-ratio:1;border-radius:14px;overflow:hidden;position:relative;
+    touch-action:none;background:#000;border:2px dashed rgba(255,255,255,.6);
+  }
+  .pcrop .frame img{
+    width:100%;height:100%;object-fit:cover;display:block;
+    pointer-events:none;-webkit-user-select:none;user-select:none;
+  }
+  .pcrop .lead{color:rgba(255,255,255,.78);font-size:12.5px;margin:0;text-align:center;line-height:1.7}
+
   .pview{
     position:fixed;inset:0;z-index:90;background:rgba(12,22,32,.94);
     display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
@@ -753,9 +768,19 @@
   </div>
 </div>
 
+<div class="pcrop" id="pcrop" hidden>
+  <p class="lead">指で動かして、一覧に出したいところを枠に入れてください</p>
+  <div class="frame" id="cropFrame"><img id="cropImg" alt=""></div>
+  <div class="pview-bar">
+    <button id="cropCancel" type="button">やめる</button>
+    <button id="cropOk" type="button">これでよい</button>
+  </div>
+</div>
+
 <div class="pview" id="pview" hidden>
   <img id="pviewImg" alt="">
   <div class="pview-bar">
+    <button id="pviewCrop" type="button">表示位置</button>
     <button class="del" id="pviewDel" type="button">この写真を消す</button>
     <button id="pviewClose" type="button">閉じる</button>
   </div>
@@ -838,8 +863,13 @@
     return PREFS.filter(function(p){ return p[2] === area; }).map(function(p){ return p[0]; });
   }
 
-  var APP_VERSION = "2.3";
+  var APP_VERSION = "2.4";
   var CHANGELOG = [
+    ["2.4", "2026-09-11", [
+      "写真の表示位置を指で決められるようにしました（写真を開いて「表示位置」）",
+      "一覧の四角に出したいところを、枠の中で動かして合わせられます",
+      "日付の「初めて行った日は別」を「初めて行った日を入れる」に改めました"
+    ]],
     ["2.3", "2026-09-11", [
       "写真を残せるようにしました。到来に3枚、制覇に3枚まで",
       "共有しているときは、相手の端末でも同じ写真が見られます",
@@ -1209,7 +1239,7 @@
     var pEl = document.createElement("p"); pEl.className = "dnote";
     pEl.appendChild(document.createTextNode("到来も同じ日で記録しています。"));
     var b = document.createElement("button");
-    b.type = "button"; b.className = "dsplit"; b.textContent = "初めて行った日は別";
+    b.type = "button"; b.className = "dsplit"; b.textContent = "初めて行った日を入れる";
     b.addEventListener("click", function(){ splitDates = true; fillSheet(); });
     pEl.appendChild(b);
     return pEl;
@@ -1522,7 +1552,19 @@
      共有していれば Firestore にも置いて相手にも見えるようにする。
      localStorage は5MBしかなく写真は入らないので使わない。 */
   var PHOTO_MAX = 3;
-  var photoCache = {};        /* id -> データURL */
+  /* id -> {data:データURL, px:0〜1, py:0〜1}
+     px/py は一覧の四角に「写真のどこを出すか」。0.5,0.5 で中央 */
+  var photoCache = {};
+  function normPhoto(v){
+    if(!v) return null;
+    if(typeof v === "string") return { data: v, px: 0.5, py: 0.5 };
+    if(!v.data) return null;
+    return {
+      data: v.data,
+      px: (typeof v.px === "number") ? v.px : 0.5,
+      py: (typeof v.py === "number") ? v.py : 0.5
+    };
+  }
 
   function idb(){
     return new Promise(function(res, rej){
@@ -1580,7 +1622,7 @@
     kinds.forEach(function(kind){
       for(var i = 1; i <= PHOTO_MAX; i++){
         (function(id){
-          jobs.push(idbGet(id).then(function(v){ if(v) photoCache[id] = v; }));
+          jobs.push(idbGet(id).then(function(v){ var n = normPhoto(v); if(n) photoCache[id] = n; }));
         })(photoId(code, kind, i));
       }
     });
@@ -1590,8 +1632,10 @@
       return window.__cloud.photoList(roomId, code).then(function(list){
         var got = false;
         list.forEach(function(d){
-          if(d && d.data && photoCache[d.id] !== d.data){
-            photoCache[d.id] = d.data; idbPut(d.id, d.data); got = true;
+          var n = normPhoto(d); if(!n) return;
+          var cur = photoCache[d.id];
+          if(!cur || cur.data !== n.data || cur.px !== n.px || cur.py !== n.py){
+            photoCache[d.id] = n; idbPut(d.id, n); got = true;
           }
         });
         if(got) renderPhotos();
@@ -1615,7 +1659,8 @@
             var cell = document.createElement("button");
             cell.type = "button"; cell.className = "pcell" + (src ? "" : " add");
             if(src){
-              var im = document.createElement("img"); im.src = src; im.alt = "";
+              var im = document.createElement("img"); im.src = src.data; im.alt = "";
+              im.style.objectPosition = (src.px * 100).toFixed(1) + "% " + (src.py * 100).toFixed(1) + "%";
               cell.appendChild(im);
               cell.addEventListener("click", function(){ openPview(id); });
             }else{
@@ -1643,12 +1688,14 @@
     var id = photoId(job.code, job.kind, job.slot);
     var cell = null;
     shrink(file).then(function(dataUrl){
-      photoCache[id] = dataUrl;
+      var rec = { data: dataUrl, px: 0.5, py: 0.5 };
+      photoCache[id] = rec;
       renderPhotos();
-      idbPut(id, dataUrl);
+      idbPut(id, rec);
       if(roomId && window.__cloud && window.__cloud.photoSave){
         return window.__cloud.photoSave(roomId, id, {
-          code: job.code, kind: job.kind, slot: job.slot, data: dataUrl, t: Date.now()
+          code: job.code, kind: job.kind, slot: job.slot,
+          data: dataUrl, px: 0.5, py: 0.5, t: Date.now()
         }).catch(function(){
           alert("写真はこの端末に保存しましたが、共有には送れませんでした。通信とFirestoreの設定をご確認ください。");
         });
@@ -1663,7 +1710,9 @@
   var pviewImg = document.getElementById("pviewImg");
   var pviewing = null;
   function openPview(id){
-    pviewing = id; pviewImg.src = photoCache[id] || "";
+    pviewing = id;
+    var rec = photoCache[id];
+    pviewImg.src = rec ? rec.data : "";
     pview.hidden = false;
   }
   function closePview(){ pview.hidden = true; pviewImg.src = ""; pviewing = null; }
@@ -1678,6 +1727,68 @@
       window.__cloud.photoDelete(roomId, id).catch(function(){});
     }
     closePview(); renderPhotos();
+  });
+
+  /* ── 表示位置を指で決める ──
+     一覧の四角は写真を切り取って出すので、そのままだと顔が切れることがある。
+     どこを見せるかを写真ごとに持たせ、指で動かして決められるようにした。 */
+  var pcrop = document.getElementById("pcrop");
+  var cropFrame = document.getElementById("cropFrame");
+  var cropImg = document.getElementById("cropImg");
+  var cropId = null, cropPx = 0.5, cropPy = 0.5, cropDrag = false, cropLX = 0, cropLY = 0;
+
+  function applyCrop(){
+    cropImg.style.objectPosition = (cropPx * 100).toFixed(1) + "% " + (cropPy * 100).toFixed(1) + "%";
+  }
+  function openCrop(id){
+    var rec = photoCache[id]; if(!rec) return;
+    cropId = id; cropPx = rec.px; cropPy = rec.py;
+    cropImg.src = rec.data; applyCrop();
+    pcrop.hidden = false;
+  }
+  function closeCrop(){ pcrop.hidden = true; cropImg.src = ""; cropId = null; }
+
+  cropFrame.addEventListener("pointerdown", function(ev){
+    cropDrag = true; cropLX = ev.clientX; cropLY = ev.clientY;
+    try{ cropFrame.setPointerCapture(ev.pointerId); }catch(e){}
+  });
+  cropFrame.addEventListener("pointermove", function(ev){
+    if(!cropDrag) return;
+    ev.preventDefault();
+    var W = cropFrame.clientWidth, H = cropFrame.clientHeight;
+    var w = cropImg.naturalWidth, h = cropImg.naturalHeight;
+    if(!w || !h) return;
+    /* はみ出している量のぶんだけ動かせる。端まで来たら止まる */
+    var sc = Math.max(W / w, H / h);
+    var ox = w * sc - W, oy = h * sc - H;
+    var dx = ev.clientX - cropLX, dy = ev.clientY - cropLY;
+    cropLX = ev.clientX; cropLY = ev.clientY;
+    if(ox > 0.5) cropPx = Math.min(1, Math.max(0, cropPx - dx / ox));
+    if(oy > 0.5) cropPy = Math.min(1, Math.max(0, cropPy - dy / oy));
+    applyCrop();
+  });
+  function endDrag(){ cropDrag = false; }
+  cropFrame.addEventListener("pointerup", endDrag);
+  cropFrame.addEventListener("pointercancel", endDrag);
+  cropFrame.addEventListener("pointerleave", endDrag);
+
+  document.getElementById("cropCancel").addEventListener("click", closeCrop);
+  document.getElementById("cropOk").addEventListener("click", function(){
+    var id = cropId; if(!id){ closeCrop(); return; }
+    var rec = photoCache[id]; if(!rec){ closeCrop(); return; }
+    rec.px = cropPx; rec.py = cropPy;
+    idbPut(id, rec);
+    if(roomId && window.__cloud && window.__cloud.photoSave){
+      var parts = id.split("_");
+      window.__cloud.photoSave(roomId, id, {
+        code: +parts[0], kind: parts[1], slot: +parts[2],
+        data: rec.data, px: rec.px, py: rec.py, t: Date.now()
+      }).catch(function(){});
+    }
+    closeCrop(); closePview(); renderPhotos();
+  });
+  document.getElementById("pviewCrop").addEventListener("click", function(){
+    if(pviewing) openCrop(pviewing);
   });
 
   function dropPhotosOf(code){
