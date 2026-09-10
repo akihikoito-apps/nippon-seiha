@@ -225,6 +225,7 @@
     box-shadow:0 -6px 40px rgba(16,32,44,.20);
     transform:translateY(101%);transition:transform .3s cubic-bezier(.2,.8,.3,1);
     padding:14px 18px calc(24px + env(safe-area-inset-bottom));
+    max-height:88vh;max-height:88dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;
   }
   .sheet.on{transform:translateY(0)}
   @media (prefers-reduced-motion: reduce){ .sheet,.veil{transition:none} }
@@ -274,6 +275,33 @@
     border:none;background:none;padding:0;margin-left:4px;
     color:var(--blue);font-size:12px;font-weight:700;text-decoration:underline;
   }
+  /* ── 写真 ── */
+  .photos{display:flex;flex-direction:column;gap:7px}
+  .plabel{font-size:11.5px;letter-spacing:.14em;color:var(--ink-3)}
+  .pstrip{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .pcell{
+    position:relative;aspect-ratio:1;border-radius:11px;overflow:hidden;
+    background:var(--surface-2);border:1px solid var(--line-soft);
+    display:flex;align-items:center;justify-content:center;padding:0;
+  }
+  .pcell img{width:100%;height:100%;object-fit:cover;display:block}
+  .pcell.add{border-style:dashed;border-color:var(--line);color:var(--ink-3);font-size:21px;font-weight:400}
+  .pcell.add:hover{border-color:var(--blue);color:var(--blue)}
+  .pcell.busy{color:var(--ink-3);font-size:11px;letter-spacing:.08em}
+
+  .pview{
+    position:fixed;inset:0;z-index:90;background:rgba(12,22,32,.94);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+    padding:calc(20px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));
+  }
+  .pview img{max-width:100%;max-height:72vh;border-radius:12px;display:block}
+  .pview-bar{display:flex;gap:14px;align-items:center}
+  .pview-bar button{
+    border:1px solid rgba(255,255,255,.4);background:none;color:#fff;
+    font-size:13px;font-weight:700;padding:10px 20px;border-radius:999px;
+  }
+  .pview-bar .del{border-color:rgba(232,120,105,.6);color:#F0938A}
+
   .sheet-foot{display:flex;align-items:center;justify-content:space-between;gap:12px}
   .clear{border:none;background:none;padding:0;color:var(--ink-3);font-size:12.5px;text-decoration:underline}
   .done{
@@ -693,6 +721,15 @@
       </button>
     </div>
     <div class="dates" id="dates"></div>
+    <div class="photos" id="photoArr" hidden>
+      <span class="plabel">到来の写真（3枚まで）</span>
+      <div class="pstrip" id="stripArr"></div>
+    </div>
+    <div class="photos" id="photoConq" hidden>
+      <span class="plabel">制覇の写真（3枚まで）</span>
+      <div class="pstrip" id="stripConq"></div>
+    </div>
+    <input type="file" accept="image/*" id="photoInput" hidden>
     <div class="sheet-foot">
       <button class="clear" id="clearBtn" type="button">この県の記録を消す</button>
       <button class="done" id="doneBtn" type="button">閉じる</button>
@@ -713,6 +750,14 @@
     </div>
     <p class="tcount" id="tcount"></p>
     <div class="trail" id="trail"></div>
+  </div>
+</div>
+
+<div class="pview" id="pview" hidden>
+  <img id="pviewImg" alt="">
+  <div class="pview-bar">
+    <button class="del" id="pviewDel" type="button">この写真を消す</button>
+    <button id="pviewClose" type="button">閉じる</button>
   </div>
 </div>
 
@@ -793,8 +838,14 @@
     return PREFS.filter(function(p){ return p[2] === area; }).map(function(p){ return p[0]; });
   }
 
-  var APP_VERSION = "2.2";
+  var APP_VERSION = "2.3";
   var CHANGELOG = [
+    ["2.3", "2026-09-11", [
+      "写真を残せるようにしました。到来に3枚、制覇に3枚まで",
+      "共有しているときは、相手の端末でも同じ写真が見られます",
+      "写真は端末側で縮めてから保存します（元の大きさのままだとすぐ容量が尽きるため）",
+      "県の記録を消すと、その県の写真も一緒に消えます"
+    ]],
     ["2.2", "2026-09-11", [
       "県の記録を消すとき、確認を出すようにしました",
       "確認の画面には、消える日付もそのまま並べています"
@@ -1116,7 +1167,7 @@
     splitDates = false;
     currentCode = code;
     currentArea = AREA_OF[code];
-    renderChips(); fillSheet(); paint();
+    renderChips(); fillSheet(); paint(); loadPhotos(code);
     if(areaChanged) zoomTo(areaBox(currentArea), areaPad(currentArea));
     sheet.hidden = false; veil.classList.add("on");
     requestAnimationFrame(function(){ sheet.classList.add("on"); });
@@ -1191,7 +1242,7 @@
   function clearPref(code){ data[code] = {t:0}; }
   function afterEdit(code){
     if(data[code]) data[code].t = Date.now();
-    persist(); fillSheet(); paint(); renderChips(); renderTrail(); pushCloud();
+    persist(); fillSheet(); paint(); renderChips(); renderTrail(); renderPhotos(); pushCloud();
   }
 
   mArr.addEventListener("click", function(){
@@ -1213,9 +1264,12 @@
     if(r.arrived)   lines.push("　到来　" + jpDate(r.arrived));
     if(r.conquered) lines.push("　制覇　" + jpDate(r.conquered));
     if(!r.arrived && !r.conquered) lines.push("（まだ何も記録されていません）");
+    var pn = photoCountOf(code);
+    if(pn) lines.push("　写真　" + pn + "枚");
     lines.push("");
     lines.push("消すと元に戻せません。よろしいですか。");
     if(!confirm(lines.join(String.fromCharCode(10)))) return;
+    dropPhotosOf(code);
     clearPref(code); afterEdit(code);
   });
 
@@ -1463,6 +1517,190 @@
   if(window.__cloud) bootSync();
   else window.addEventListener("cloud-ready", bootSync);
 
+  /* ── 写真 ──────────────────────────────────────
+     到来に3枚、制覇に3枚。端末（IndexedDB）に控えを持ち、
+     共有していれば Firestore にも置いて相手にも見えるようにする。
+     localStorage は5MBしかなく写真は入らないので使わない。 */
+  var PHOTO_MAX = 3;
+  var photoCache = {};        /* id -> データURL */
+
+  function idb(){
+    return new Promise(function(res, rej){
+      var r = indexedDB.open("nippon-seiha", 1);
+      r.onupgradeneeded = function(){ r.result.createObjectStore("photos"); };
+      r.onsuccess = function(){ res(r.result); };
+      r.onerror = function(){ rej(r.error); };
+    });
+  }
+  function idbDo(mode, fn){
+    return idb().then(function(db){
+      return new Promise(function(res, rej){
+        var tx = db.transaction("photos", mode);
+        var req = fn(tx.objectStore("photos"));
+        tx.oncomplete = function(){ res(req && req.result); };
+        tx.onerror = function(){ rej(tx.error); };
+      });
+    }).catch(function(){ return null; });
+  }
+  function idbGet(k){ return idbDo("readonly", function(st){ return st.get(k); }); }
+  function idbPut(k, v){ return idbDo("readwrite", function(st){ return st.put(v, k); }); }
+  function idbDel(k){ return idbDo("readwrite", function(st){ return st.delete(k); }); }
+
+  function photoId(code, kind, slot){ return code + "_" + kind + "_" + slot; }
+
+  /* 端末で縮めてから保存する。元のままだと1枚数MBあり、すぐ容量が尽きる */
+  function shrink(file){
+    var steps = [[1200, 0.72], [1000, 0.66], [800, 0.6], [640, 0.5]];
+    return new Promise(function(res, rej){
+      var url = URL.createObjectURL(file), img = new Image();
+      img.onload = function(){
+        var out = null;
+        for(var i = 0; i < steps.length; i++){
+          var maxEdge = steps[i][0], q = steps[i][1];
+          var w = img.naturalWidth, h = img.naturalHeight;
+          var sc = Math.min(1, maxEdge / Math.max(w, h));
+          var c = document.createElement("canvas");
+          c.width = Math.max(1, Math.round(w * sc));
+          c.height = Math.max(1, Math.round(h * sc));
+          c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+          out = c.toDataURL("image/jpeg", q);
+          if(out.length < 700000) break;   /* Firestoreは1件1MBまで。余裕をみて70万字 */
+        }
+        URL.revokeObjectURL(url);
+        out ? res(out) : rej(new Error("変換できませんでした"));
+      };
+      img.onerror = function(){ URL.revokeObjectURL(url); rej(new Error("読み込めませんでした")); };
+      img.src = url;
+    });
+  }
+
+  function loadPhotos(code){
+    /* まず端末の控えを読み、共有していれば相手の分も取りに行く */
+    var kinds = ["arr", "conq"], jobs = [];
+    kinds.forEach(function(kind){
+      for(var i = 1; i <= PHOTO_MAX; i++){
+        (function(id){
+          jobs.push(idbGet(id).then(function(v){ if(v) photoCache[id] = v; }));
+        })(photoId(code, kind, i));
+      }
+    });
+    return Promise.all(jobs).then(function(){
+      renderPhotos();
+      if(!roomId || !window.__cloud || !window.__cloud.photoList) return;
+      return window.__cloud.photoList(roomId, code).then(function(list){
+        var got = false;
+        list.forEach(function(d){
+          if(d && d.data && photoCache[d.id] !== d.data){
+            photoCache[d.id] = d.data; idbPut(d.id, d.data); got = true;
+          }
+        });
+        if(got) renderPhotos();
+      }).catch(function(){});
+    });
+  }
+
+  function renderPhotos(){
+    var code = currentCode; if(!code) return;
+    var r = data[code] || {};
+    [["arr", r.arrived, "photoArr", "stripArr"], ["conq", r.conquered, "photoConq", "stripConq"]]
+      .forEach(function(row){
+        var kind = row[0], has = !!row[1];
+        var box = document.getElementById(row[2]), strip = document.getElementById(row[3]);
+        box.hidden = !has;
+        if(!has) return;
+        strip.textContent = "";
+        for(var i = 1; i <= PHOTO_MAX; i++){
+          (function(slot){
+            var id = photoId(code, kind, slot), src = photoCache[id];
+            var cell = document.createElement("button");
+            cell.type = "button"; cell.className = "pcell" + (src ? "" : " add");
+            if(src){
+              var im = document.createElement("img"); im.src = src; im.alt = "";
+              cell.appendChild(im);
+              cell.addEventListener("click", function(){ openPview(id); });
+            }else{
+              cell.textContent = "＋";
+              cell.setAttribute("aria-label", "写真を追加");
+              cell.addEventListener("click", function(){ pickPhoto(code, kind, slot); });
+            }
+            strip.appendChild(cell);
+          })(i);
+        }
+      });
+  }
+
+  var photoInput = document.getElementById("photoInput");
+  var pending = null;
+  function pickPhoto(code, kind, slot){
+    pending = { code: code, kind: kind, slot: slot };
+    photoInput.value = "";
+    photoInput.click();
+  }
+  photoInput.addEventListener("change", function(){
+    var file = photoInput.files && photoInput.files[0];
+    if(!file || !pending) return;
+    var job = pending; pending = null;
+    var id = photoId(job.code, job.kind, job.slot);
+    var cell = null;
+    shrink(file).then(function(dataUrl){
+      photoCache[id] = dataUrl;
+      renderPhotos();
+      idbPut(id, dataUrl);
+      if(roomId && window.__cloud && window.__cloud.photoSave){
+        return window.__cloud.photoSave(roomId, id, {
+          code: job.code, kind: job.kind, slot: job.slot, data: dataUrl, t: Date.now()
+        }).catch(function(){
+          alert("写真はこの端末に保存しましたが、共有には送れませんでした。通信とFirestoreの設定をご確認ください。");
+        });
+      }
+    }).catch(function(e){
+      alert("写真を取り込めませんでした。" + (e && e.message ? String(e.message) : ""));
+    });
+  });
+
+  /* 大きく見る */
+  var pview = document.getElementById("pview");
+  var pviewImg = document.getElementById("pviewImg");
+  var pviewing = null;
+  function openPview(id){
+    pviewing = id; pviewImg.src = photoCache[id] || "";
+    pview.hidden = false;
+  }
+  function closePview(){ pview.hidden = true; pviewImg.src = ""; pviewing = null; }
+  document.getElementById("pviewClose").addEventListener("click", closePview);
+  document.getElementById("pviewDel").addEventListener("click", function(){
+    if(!pviewing) return;
+    if(!confirm("この写真を消します。元に戻せません。よろしいですか。")) return;
+    var id = pviewing;
+    delete photoCache[id];
+    idbDel(id);
+    if(roomId && window.__cloud && window.__cloud.photoDelete){
+      window.__cloud.photoDelete(roomId, id).catch(function(){});
+    }
+    closePview(); renderPhotos();
+  });
+
+  function dropPhotosOf(code){
+    ["arr", "conq"].forEach(function(kind){
+      for(var i = 1; i <= PHOTO_MAX; i++){
+        var id = photoId(code, kind, i);
+        if(!photoCache[id]) continue;
+        delete photoCache[id];
+        idbDel(id);
+        if(roomId && window.__cloud && window.__cloud.photoDelete){
+          window.__cloud.photoDelete(roomId, id).catch(function(){});
+        }
+      }
+    });
+  }
+  function photoCountOf(code){
+    var n = 0;
+    ["arr", "conq"].forEach(function(kind){
+      for(var i = 1; i <= PHOTO_MAX; i++){ if(photoCache[photoId(code, kind, i)]) n++; }
+    });
+    return n;
+  }
+
   /* ── Face IDで開く ──────────────────────────────
      WebAuthn（パスキー）で確認する。合言葉は必ず控えとして持たせる。
      記録そのものは端末内に普通の形で入っているので、これは
@@ -1623,7 +1861,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
-  import { getFirestore, doc, onSnapshot, setDoc }
+  import { getFirestore, doc, onSnapshot, setDoc, deleteDoc, collection, query, where, getDocs }
     from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
 
   /* この設定値は公開してよいもの。守りは保存先の名前（合言葉から作る）と
@@ -1647,6 +1885,20 @@
       },
       save: function(roomId, records){
         return setDoc(doc(db, "rooms", roomId), { records: records, updatedAt: Date.now() });
+      },
+      photoSave: function(roomId, id, obj){
+        return setDoc(doc(db, "rooms", roomId, "photos", id), obj);
+      },
+      photoDelete: function(roomId, id){
+        return deleteDoc(doc(db, "rooms", roomId, "photos", id));
+      },
+      photoList: function(roomId, code){
+        return getDocs(query(collection(db, "rooms", roomId, "photos"), where("code", "==", code)))
+          .then(function(snap){
+            var out = [];
+            snap.forEach(function(d){ out.push(Object.assign({ id: d.id }, d.data())); });
+            return out;
+          });
       }
     };
     window.dispatchEvent(new Event("cloud-ready"));
