@@ -32,9 +32,11 @@
     --blue:#16628F;
     --blue-ink:#FFFFFF;
     --blue-wash:#DDEAF3;
-    --pink:#F0959B;
-    --pink-wash:#FCE7E8;
-    --red:#D8392A;
+    --pink:#F8C7CA;
+    --pink-mid:#EFA5AB;
+    --pink-ink:#C2646C;
+    --pink-wash:#FDEFF0;
+    --red:#CE3222;
     --red-wash:#FADFDB;
     --land:#FFFFFF;
     --land-line:#7C9EB4;
@@ -99,13 +101,13 @@
     line-height:1;font-variant-numeric:tabular-nums;letter-spacing:.02em;
   }
   .count.conq .n{color:var(--red)}
-  .count.arr .n{color:var(--pink)}
+  .count.arr .n{color:var(--pink-ink)}
   .count .u{font-size:11.5px;color:var(--ink-2);letter-spacing:.1em}
   .count .u b{font-weight:700;color:var(--ink-3)}
   .bar{height:6px;border-radius:99px;background:var(--surface-2);overflow:hidden;display:flex}
   .bar i{display:block;height:100%;transition:width .5s cubic-bezier(.2,.7,.3,1)}
   .bar .b-conq{background:var(--red)}
-  .bar .b-arr{background:var(--pink)}
+  .bar .b-arr{background:var(--pink-mid)}
 
   /* ── 地図 ── */
   /* 地図の枠は「海」。白い陸が浮くよう、淡い青を敷く */
@@ -154,7 +156,7 @@
     display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:7px;
     vertical-align:1px;background:var(--line);
   }
-  .chip .dot.arr{background:var(--pink)}
+  .chip .dot.arr{background:var(--pink-mid)}
   .chip .dot.conq{background:var(--red)}
 
   .credit{font-size:10.5px;color:var(--ink-3);letter-spacing:.03em;line-height:1.6;margin:0}
@@ -186,7 +188,7 @@
     align-self:flex-start;font-size:12px;font-weight:700;letter-spacing:.08em;
     padding:4px 13px;border-radius:999px;background:var(--surface-2);color:var(--ink-2);
   }
-  .pill.arr{background:var(--pink-wash);color:var(--red)}
+  .pill.arr{background:var(--pink-wash);color:var(--pink-ink)}
   .pill.conq{background:var(--red-wash);color:var(--red)}
 
   .marks{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -197,9 +199,10 @@
   }
   .mark .ja{font-family:"Shippori Mincho","Yu Mincho",serif;font-weight:800;font-size:21px;letter-spacing:.12em}
   .mark .en{font-size:10.5px;letter-spacing:.1em;color:var(--ink-3)}
-  .mark.arr[aria-pressed="true"]{background:var(--pink-wash);border-color:var(--pink)}
+  .mark.arr[aria-pressed="true"]{background:var(--pink-wash);border-color:var(--pink-mid)}
   .mark.conq[aria-pressed="true"]{background:var(--red-wash);border-color:var(--red)}
-  .mark[aria-pressed="true"] .ja{color:var(--red)}
+  .mark.arr[aria-pressed="true"] .ja{color:var(--pink-ink)}
+  .mark.conq[aria-pressed="true"] .ja{color:var(--red)}
 
   .dates{display:flex;flex-direction:column;gap:8px}
   .daterow{
@@ -247,7 +250,7 @@
     transition:background .15s,color .15s;
   }
   .seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--shadow-s)}
-  .seg button.arr[aria-pressed="true"]{color:var(--pink)}
+  .seg button.arr[aria-pressed="true"]{color:var(--pink-ink)}
   .seg button.conq[aria-pressed="true"]{color:var(--red)}
   .tcount{font-size:11.5px;letter-spacing:.1em;color:var(--ink-3);margin:0}
 
@@ -264,7 +267,7 @@
   .entry .d{font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums}
   .entry .p{font-family:"Shippori Mincho","Yu Mincho",serif;font-weight:700;font-size:17px;letter-spacing:.06em}
   .entry .k{font-size:11px;font-weight:700;letter-spacing:.1em;padding:4px 11px;border-radius:999px;white-space:nowrap}
-  .entry .k.arr{background:var(--pink-wash);color:var(--red)}
+  .entry .k.arr{background:var(--pink-wash);color:var(--pink-ink)}
   .entry .k.conq{background:var(--red-wash);color:var(--red)}
   .entry .k.both{background:var(--red);color:#fff}
   .empty{padding:46px 10px;text-align:center;color:var(--ink-3);font-size:13.5px;line-height:2;margin:0}
@@ -738,7 +741,7 @@
 
   function setHint(){
     maphint.textContent = currentArea
-      ? "もう一度さわると記録できます"
+      ? "県をさわると記録／海をさわると全国へ"
       : "地図をさわると、その地方に寄ります";
   }
 
@@ -776,9 +779,17 @@
     renderChips(); paint();
     zoomTo(unionBox(codesIn(key)));
   }
-  backBtn.addEventListener("click", function(){
+  function backToWhole(){
     currentArea = null; currentCode = null;
     renderChips(); paint(); showWhole();
+  }
+  backBtn.addEventListener("click", backToWhole);
+
+  /* ★ 海（陸のないところ）をさわると、ひとつ前の広さに戻す */
+  svg.addEventListener("click", function(ev){
+    var t = ev.target;
+    if(t && t.closest && t.closest(".prefecture")) return;
+    if(currentArea) backToWhole();
   });
 
   var sheet = document.getElementById("sheet"), veil = document.getElementById("veil");
