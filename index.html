@@ -1215,8 +1215,7 @@
     if(!r.arrived && !r.conquered) lines.push("（まだ何も記録されていません）");
     lines.push("");
     lines.push("消すと元に戻せません。よろしいですか。");
-    if(!confirm(lines.join("
-"))) return;
+    if(!confirm(lines.join(String.fromCharCode(10)))) return;
     clearPref(code); afterEdit(code);
   });
 
